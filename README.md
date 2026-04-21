@@ -1,7 +1,7 @@
-# student-score-analysis-system
+
 学生成绩数据化分析管理系统  
 **Student Performance Digital Analysis & Management System**
----
+-
 
 ## 项目简介
 这是一套**前后端分离**的高校成绩管理平台，基于 Python + Django + Vue3 开发，实现成绩从录入、计算、管理到分析、可视化的全流程数字化解决方案。
@@ -34,8 +34,6 @@ Pandas | NumPy | Excel 解析
 - 高性能：Redis 缓存 + Celery 异步任务
 - 可视化数据分析图表，直观展示教学质量
 - 适配高校教学管理场景，可直接部署使用
-
----
 
 ## 总结
 高效、数据驱动、可配置的高校成绩全流程管理与智能分析系统。
