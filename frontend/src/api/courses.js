@@ -96,6 +96,13 @@ export function updateClass(id, data) {
   })
 }
 
+export function deleteClass(id) {
+  return request({
+    url: `/courses/classes/${id}/`,
+    method: 'delete'
+  })
+}
+
 export function getClassStatistics(id) {
   return request({
     url: `/courses/classes/${id}/statistics/`,
@@ -184,5 +191,27 @@ export function setGradingFormula(id, data) {
     url: `/courses/grading-policies/${id}/set-formula/`,
     method: 'post',
     data
+  })
+}
+
+export function getObjectiveConfig(courseId) {
+  return request({
+    url: `/courses/courses/${courseId}/objective-config/`,
+    method: 'get'
+  })
+}
+
+export function setObjectiveConfig(courseId, config) {
+  return request({
+    url: `/courses/courses/${courseId}/set-objective-config/`,
+    method: 'post',
+    data: { config }
+  })
+}
+
+export function getGraphicsGradebooks() {
+  return request({
+    url: '/scores/gradebooks/graphics-classes/',
+    method: 'get'
   })
 }

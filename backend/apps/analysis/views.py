@@ -441,36 +441,46 @@ class AnalysisViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='export-quality-analysis')
     def export_quality_analysis(self, request):
         """导出质量分析Word文档"""
-        from apps.scores.models import AlgorithmScore
+        from apps.scores.models import AlgorithmScore, Score
         from apps.courses.models import CourseClass
         from apps.analysis.export_quality import generate_quality_analysis_doc
         from io import BytesIO
         from django.http import HttpResponse
         import math
-        
+
         course_class_id = request.data.get('course_class_id')
+        is_graphics_course = request.data.get('is_graphics_course', False)
+
         if not course_class_id:
             return Response({'error': '请提供course_class_id'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             course_class = CourseClass.objects.select_related('course').get(id=course_class_id)
-            
+
             # 权限检查：管理员和超级用户可以访问所有班级，教师只能查看自己作为主讲教师或助教的班级
             user = request.user
             if user.user_type != 'admin' and not user.is_superuser:
                 if user.user_type == 'teacher':
-                    if (course_class.main_teacher != user and 
+                    if (course_class.main_teacher != user and
                         user not in course_class.assistant_teachers.all()):
                         return Response({'error': '您没有权限查看该班级的数据'}, status=status.HTTP_403_FORBIDDEN)
-            
-            if course_class.course.course_name != '算法分析与设计':
-                return Response({'error': '质量分析仅支持算法分析与设计课程'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            scores = AlgorithmScore.objects.filter(course_class=course_class).select_related('student')
-            
+
+            # 根据课程类型判断
+            course_name = course_class.course.course_name
+            if '图形学' in course_name:
+                is_graphics_course = True
+            elif '算法' in course_name:
+                is_graphics_course = False
+
+            # 获取成绩数据
+            if is_graphics_course:
+                scores = Score.objects.filter(course_class=course_class).select_related('student')
+            else:
+                scores = AlgorithmScore.objects.filter(course_class=course_class).select_related('student')
+
             basic_info = request.data.get('basic_info', {})
             analysis_texts_raw = request.data.get('analysis_texts', {})
-            
+
             # 辅助函数：安全地将值转换为字符串
             def safe_str(value, default=''):
                 if value is None:
@@ -497,24 +507,23 @@ class AnalysisViewSet(viewsets.ViewSet):
                     return result
                 except Exception:
                     return default
-            
+
             # 确保analysis_texts中的所有值都是字符串
             analysis_texts = {}
             for key, value in analysis_texts_raw.items():
                 analysis_texts[key] = safe_str(value, '')
-            
-            course_name = safe_str(basic_info.get('course_name')) or course_class.course.course_name
+
             teacher_name = safe_str(basic_info.get('teacher_name')) or safe_str(course_class.main_teacher.first_name if course_class.main_teacher else '')
             department = safe_str(basic_info.get('department')) or safe_str(course_class.course.department if course_class.course.department else '')
             class_name = safe_str(basic_info.get('class_name')) or course_class.class_name
-            
+
             # 确保hours是字符串
             hours_value = basic_info.get('hours')
             if hours_value is None or hours_value == '':
                 hours_value = str(course_class.course.hours) if course_class.course.hours else ''
             else:
                 hours_value = safe_str(hours_value)
-            
+
             # 确保exam_count是整数
             exam_count_value = basic_info.get('exam_count')
             if exam_count_value is None:
@@ -527,12 +536,12 @@ class AnalysisViewSet(viewsets.ViewSet):
                         exam_count_value = int(safe_str(exam_count_value, '0') or '0')
                 except (ValueError, TypeError):
                     exam_count_value = scores.count()
-            
+
             exam_nature = safe_str(basic_info.get('exam_nature'), '考试')
             exam_method = safe_str(basic_info.get('exam_method'), '闭卷')
             exam_date = safe_str(basic_info.get('exam_date'))
             question_source = safe_str(basic_info.get('question_source'), '自主命题')
-            
+
             basic_info_dict = {
                 'course_name': safe_str(course_name),
                 'teacher_name': safe_str(teacher_name),
@@ -545,14 +554,18 @@ class AnalysisViewSet(viewsets.ViewSet):
                 'exam_date': safe_str(exam_date),
                 'question_source': safe_str(question_source, '自主命题')
             }
-            
-            final_paper_scores = [s.final_paper_score for s in scores if s.final_paper_score is not None]
-            
-            if not final_paper_scores:
-                return Response({'error': '该班级暂无卷面成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            total_count = len(final_paper_scores)
-            
+
+            # 获取成绩分数（根据课程类型）
+            if is_graphics_course:
+                final_scores = [s.final_grade for s in scores if s.final_grade is not None]
+            else:
+                final_scores = [s.final_paper_score for s in scores if s.final_paper_score is not None]
+
+            if not final_scores:
+                return Response({'error': '该班级暂无成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
+
+            total_count = len(final_scores)
+
             ranges = [
                 {'label': '不及格', 'min': 0, 'max': 59},
                 {'label': '及格', 'min': 60, 'max': 69},
@@ -560,10 +573,10 @@ class AnalysisViewSet(viewsets.ViewSet):
                 {'label': '良好', 'min': 80, 'max': 89},
                 {'label': '优秀', 'min': 90, 'max': 100}
             ]
-            
+
             distribution = []
             for r in ranges:
-                count = len([s for s in final_paper_scores if r['min'] <= s <= r['max']])
+                count = len([s for s in final_scores if r['min'] <= s <= r['max']])
                 percentage = (count / total_count * 100) if total_count > 0 else 0
                 distribution.append({
                     'label': r['label'],
@@ -571,20 +584,20 @@ class AnalysisViewSet(viewsets.ViewSet):
                     'count': count,
                     'percentage': percentage
                 })
-            
-            max_score = max(final_paper_scores)
-            min_score = min(final_paper_scores)
-            avg_score = sum(final_paper_scores) / len(final_paper_scores)
-            variance = sum([(s - avg_score) ** 2 for s in final_paper_scores]) / len(final_paper_scores)
+
+            max_score = max(final_scores)
+            min_score = min(final_scores)
+            avg_score = sum(final_scores) / len(final_scores)
+            variance = sum([(s - avg_score) ** 2 for s in final_scores]) / len(final_scores)
             std_dev = math.sqrt(variance)
-            
+
             statistics = {
                 'max_score': max_score,
                 'min_score': min_score,
                 'avg_score': avg_score,
                 'std_dev': std_dev
             }
-            
+
             # 确保数据类型正确
             if not isinstance(distribution, list):
                 logger.error(f"distribution类型错误: {type(distribution)}, 值: {distribution}")
@@ -598,18 +611,18 @@ class AnalysisViewSet(viewsets.ViewSet):
             if not isinstance(analysis_texts, dict):
                 logger.error(f"analysis_texts类型错误: {type(analysis_texts)}, 值: {analysis_texts}")
                 analysis_texts = {}
-            
+
             # 调试日志：打印数据类型
             logger.info(f"准备生成Word文档 - basic_info_dict类型: {type(basic_info_dict)}, analysis_texts类型: {type(analysis_texts)}")
             logger.info(f"basic_info_dict键: {list(basic_info_dict.keys()) if isinstance(basic_info_dict, dict) else 'N/A'}")
             logger.info(f"analysis_texts键: {list(analysis_texts.keys()) if isinstance(analysis_texts, dict) else 'N/A'}")
-            
-            doc = generate_quality_analysis_doc(basic_info_dict, analysis_texts, distribution, statistics)
-            
+
+            doc = generate_quality_analysis_doc(basic_info_dict, analysis_texts, distribution, statistics, is_graphics_course)
+
             output = BytesIO()
             doc.save(output)
             output.seek(0)
-            
+
             response = HttpResponse(
                 output.read(),
                 content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -617,7 +630,7 @@ class AnalysisViewSet(viewsets.ViewSet):
             filename = f"{course_name}_{class_name}_质量分析.docx"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
-            
+
         except CourseClass.DoesNotExist:
             return Response({'error': '课程班级不存在'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -809,6 +822,51 @@ class AnalysisViewSet(viewsets.ViewSet):
                 # 图形学课程：3个目标
                 scores = Score.objects.filter(course_class=course_class).select_related('student')
                 
+                if not scores.exists():
+                    return Response({'error': '该班级暂无成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # 计算总成绩分布（使用final_grade）
+                final_grades = [s.final_grade for s in scores if s.final_grade is not None]
+                
+                if not final_grades:
+                    return Response({'error': '该班级暂无总成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                total_count = len(final_grades)
+                
+                # 成绩分布
+                ranges = [
+                    {'label': '不及格', 'min': 0, 'max': 59},
+                    {'label': '及格', 'min': 60, 'max': 69},
+                    {'label': '中等', 'min': 70, 'max': 79},
+                    {'label': '良好', 'min': 80, 'max': 89},
+                    {'label': '优秀', 'min': 90, 'max': 100}
+                ]
+                
+                distribution = []
+                for r in ranges:
+                    count = len([s for s in final_grades if r['min'] <= s <= r['max']])
+                    percentage = (count / total_count * 100) if total_count > 0 else 0
+                    distribution.append({
+                        'label': r['label'],
+                        'range': f"{r['min']}~{r['max']}",
+                        'count': count,
+                        'percentage': percentage
+                    })
+                
+                # 统计信息
+                max_score = max(final_grades)
+                min_score = min(final_grades)
+                avg_score = sum(final_grades) / len(final_grades)
+                variance = sum([(s - avg_score) ** 2 for s in final_grades]) / len(final_grades)
+                std_dev = math.sqrt(variance)
+                
+                statistics = {
+                    'max_score': max_score,
+                    'min_score': min_score,
+                    'avg_score': avg_score,
+                    'std_dev': std_dev
+                }
+                
                 # 获取或计算课程目标达成度
                 score_ids = [score.id for score in scores]
                 existing_achievements = CourseObjectiveAchievement.objects.filter(
@@ -854,19 +912,21 @@ class AnalysisViewSet(viewsets.ViewSet):
                     if 3 in achievements:
                         obj3_degrees.append(achievements[3].achievement_degree)
                 
-                total_count = scores.count()
-                
-                def calculate_achievement(degrees):
+                def calculate_achievement(degrees, count):
                     if len(degrees) == 0:
                         return {'evaluated': 0.0, 'rate': 0.0}
                     evaluated = sum(degrees) / len(degrees)
                     pass_count = len([d for d in degrees if d >= expected_degree])
-                    rate = (pass_count / total_count * 100) if total_count > 0 else 0.0
+                    rate = (pass_count / count * 100) if count > 0 else 0.0
                     return {'evaluated': evaluated, 'rate': rate}
                 
-                obj1 = calculate_achievement(obj1_degrees)
-                obj2 = calculate_achievement(obj2_degrees)
-                obj3 = calculate_achievement(obj3_degrees)
+                obj1 = calculate_achievement(obj1_degrees, total_count)
+                obj2 = calculate_achievement(obj2_degrees, total_count)
+                obj3 = calculate_achievement(obj3_degrees, total_count)
+                
+                # 总和：三个目标的平均值
+                total_evaluated = (obj1['evaluated'] + obj2['evaluated'] + obj3['evaluated']) / 3.0
+                total_rate = (obj1['rate'] + obj2['rate'] + obj3['rate']) / 3.0
                 
                 def get_evaluation(evaluated):
                     if evaluated >= expected_degree:
@@ -876,13 +936,36 @@ class AnalysisViewSet(viewsets.ViewSet):
                     else:
                         return '未达成'
                 
+                def get_evaluation_text(obj_code, evaluated, rate):
+                    """根据达成度生成评价文本"""
+                    if obj_code == '课程目标1':
+                        if evaluated >= expected_degree:
+                            return '该课程目标达成度较高，说明学生对于图形学基本概念和原理的掌握较好。'
+                        else:
+                            return '该课程目标达成度不高，说明学生对于图形学基本概念和原理的掌握有待加强。'
+                    elif obj_code == '课程目标2':
+                        if evaluated >= expected_degree:
+                            return '该课程目标达成度较高，说明学生对于图形学算法实现能力较好。'
+                        else:
+                            return '该课程目标达成度不高，说明学生对于图形学算法实现能力有待加强。'
+                    elif obj_code == '课程目标3':
+                        if evaluated >= expected_degree:
+                            return '该课程目标达成度较高，说明学生对于图形学综合应用能力较好。'
+                        else:
+                            return '该课程目标达成度不高，说明学生对于图形学综合应用能力有待加强。'
+                    elif obj_code == '总和':
+                        if evaluated >= expected_degree:
+                            return '课程目标达成。'
+                        else:
+                            return '课程目标未完全达成，需要进一步改进教学方法和内容。'
+                
                 achievement_data = [
                     {
                         'objective_code': '课程目标1',
                         'expected_degree': expected_degree,
                         'evaluated_degree': obj1['evaluated'],
                         'achievement_rate': obj1['rate'],
-                        'achievement_evaluation': get_evaluation(obj1['evaluated']),
+                        'evaluation_text': get_evaluation_text('课程目标1', obj1['evaluated'], obj1['rate']),
                         'problems': '',
                         'improvements': ''
                     },
@@ -891,7 +974,7 @@ class AnalysisViewSet(viewsets.ViewSet):
                         'expected_degree': expected_degree,
                         'evaluated_degree': obj2['evaluated'],
                         'achievement_rate': obj2['rate'],
-                        'achievement_evaluation': get_evaluation(obj2['evaluated']),
+                        'evaluation_text': get_evaluation_text('课程目标2', obj2['evaluated'], obj2['rate']),
                         'problems': '',
                         'improvements': ''
                     },
@@ -900,17 +983,36 @@ class AnalysisViewSet(viewsets.ViewSet):
                         'expected_degree': expected_degree,
                         'evaluated_degree': obj3['evaluated'],
                         'achievement_rate': obj3['rate'],
-                        'achievement_evaluation': get_evaluation(obj3['evaluated']),
+                        'evaluation_text': get_evaluation_text('课程目标3', obj3['evaluated'], obj3['rate']),
+                        'problems': '',
+                        'improvements': ''
+                    },
+                    {
+                        'objective_code': '总和',
+                        'expected_degree': expected_degree,
+                        'evaluated_degree': total_evaluated,
+                        'achievement_rate': total_rate,
+                        'evaluation_text': get_evaluation_text('总和', total_evaluated, total_rate),
                         'problems': '',
                         'improvements': ''
                     }
                 ]
-            
-            return Response({
-                'course_name': course_name,
-                'class_name': course_class.class_name,
-                'achievement_data': achievement_data
-            })
+                
+                return Response({
+                    'course_name': course_name,
+                    'class_name': course_class.class_name,
+                    'distribution': distribution,
+                    'statistics': statistics,
+                    'achievement_data': achievement_data,
+                    'basic_info': {
+                        'course_name': course_class.course.course_name,
+                        'teacher_name': course_class.main_teacher.first_name if course_class.main_teacher else '',
+                        'department': course_class.course.department or '',
+                        'class_name': course_class.class_name,
+                        'hours': course_class.course.hours or 0,
+                        'exam_count': total_count
+                    }
+                })
         except CourseClass.DoesNotExist:
             return Response({'error': '课程班级不存在'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:

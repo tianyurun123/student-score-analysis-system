@@ -1010,7 +1010,13 @@ class GradebookViewSet(viewsets.ModelViewSet):
 
         try:
             course_class = CourseClass.objects.select_related('course').get(id=course_class_id)
-            gradebooks = self.get_queryset().filter(course_class_id=course_class_id).order_by('student__username')
+            
+            # 直接查询不过滤权限
+            gradebooks = Gradebook.objects.filter(course_class_id=course_class_id).select_related(
+                'student', 'course_class', 'course_class__course'
+            ).order_by('student__username')
+
+            logger.info(f"导出记分册 - course_class_id={course_class_id}, 记分册数量={gradebooks.count()}")
 
             wb = Workbook()
             ws = wb.active
@@ -1028,7 +1034,7 @@ class GradebookViewSet(viewsets.ModelViewSet):
                 '作业1', '作业2', '作业3', '作业4', '作业5',
                 '实验1', '实验2',
                 '考勤1', '考勤2', '考勤3', '考勤4', '考勤5',
-                '复习笔记', '期末成绩', '平时', '期末', '总评'
+                '复习笔记', '系统', '报告', '平时', '期末', '总评', '结论'
             ]
             for col, header in enumerate(headers, 1):
                 cell = ws.cell(row=2, column=col, value=header)
@@ -1058,16 +1064,18 @@ class GradebookViewSet(viewsets.ModelViewSet):
                     gradebook.attendance4 or '',
                     gradebook.attendance5 or '',
                     gradebook.review_note or '',
-                    gradebook.final_score or '',
+                    gradebook.system_score or '',
+                    gradebook.report_score or '',
                     round(gradebook.usual_score) if gradebook.usual_score is not None else '',
-                    gradebook.final_score or '',
+                    round(gradebook.final_score) if gradebook.final_score is not None else '',
                     round(gradebook.total_score) if gradebook.total_score is not None else '',
+                    gradebook.conclusion or '',
                 ]
                 for col, value in enumerate(row_data, 1):
                     ws.cell(row=row_idx, column=col, value=value)
 
             # 设置列宽
-            column_widths = [15, 10, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 10, 8, 8, 8]
+            column_widths = [15, 10, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 10, 8, 8, 8, 8, 8]
             for col, width in enumerate(column_widths, 1):
                 ws.column_dimensions[chr(64 + col)].width = width
 
@@ -1089,6 +1097,272 @@ class GradebookViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"导出记分册失败: {str(e)}", exc_info=True)
             return Response({'error': f'导出失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='preview-graphics-gradebook')
+    def preview_graphics_gradebook(self, request):
+        """预览图形学记分册Excel（不导入）"""
+        from apps.scores.excel_handlers import GradebookExcelHandler
+
+        serializer = ExcelUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': '数据验证失败',
+                'errors': serializer.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        file = serializer.validated_data['file']
+        course_class_id = serializer.validated_data['course_class_id']
+
+        try:
+            handler = GradebookExcelHandler()
+            result = handler.parse_excel(file, course_class_id)
+
+            if not result['success']:
+                return Response({
+                    'success': False,
+                    'error': 'Excel解析失败',
+                    'errors': result['errors'],
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 计算预览数据
+            preview_data = []
+
+            def round_half_up(x):
+                """四舍五入（标准数学舍入）"""
+                if x is None:
+                    return None
+                import math
+                return math.floor(x + 0.5)
+
+            for item in result['data'][:20]:
+                # 计算各平均值
+                homework_avg = 0
+                homework_count = 0
+                homework_scores = []
+                for key in ['homework1', 'homework2', 'homework3', 'homework4', 'homework5']:
+                    if item.get(key) is not None:
+                        homework_scores.append(item[key])
+                        homework_count += 1
+                if homework_scores:
+                    homework_avg = sum(homework_scores) / len(homework_scores)
+
+                experiment_avg = 0
+                experiment_scores = []
+                for key in ['experiment1', 'experiment2']:
+                    if item.get(key) is not None:
+                        experiment_scores.append(item[key])
+                if experiment_scores:
+                    experiment_avg = sum(experiment_scores) / len(experiment_scores)
+
+                attendance_avg = 0
+                attendance_scores = []
+                for key in ['attendance1', 'attendance2', 'attendance3', 'attendance4', 'attendance5']:
+                    if item.get(key) is not None:
+                        attendance_scores.append(item[key])
+                if attendance_scores:
+                    attendance_avg = sum(attendance_scores) / len(attendance_scores)
+
+                review_note = item.get('review_note') or 0
+                system_score = item.get('system_score') or 0
+                report_score = item.get('report_score') or 0
+
+                # 计算平时成绩
+                # 平时 = (AVERAGE(作业一到作业五)*0.1 + AVERAGE(实验一到实验二)*0.2 + AVERAGE(考勤1到考勤5)*0.05 + 复习笔记*0.05) / 0.4
+                if homework_avg > 0 or experiment_avg > 0 or attendance_avg > 0 or review_note > 0:
+                    usual_score = (homework_avg * 0.1 + experiment_avg * 0.2 + attendance_avg * 0.05 + review_note * 0.05) / 0.4
+                    usual_score = round_half_up(usual_score)
+                else:
+                    usual_score = None
+
+                # 计算期末成绩
+                # 期末 = (系统 + 报告) / 2
+                if system_score > 0 or report_score > 0:
+                    final_score = (system_score + report_score) / 2
+                else:
+                    final_score = None
+
+                # 计算总评
+                # 总评 = 平时*0.4 + 期末*0.6
+                if usual_score is not None and final_score is not None:
+                    total_score = round_half_up(usual_score * 0.4 + final_score * 0.6)
+                else:
+                    total_score = None
+
+                # 计算结论
+                if total_score is not None:
+                    if total_score >= 90:
+                        conclusion = '优秀'
+                    elif total_score >= 80:
+                        conclusion = '良好'
+                    elif total_score >= 70:
+                        conclusion = '中等'
+                    elif total_score >= 60:
+                        conclusion = '及格'
+                    else:
+                        conclusion = '不及格'
+                else:
+                    conclusion = None
+
+                preview_data.append({
+                    'student_id': item.get('student_id'),
+                    'student_name': item.get('student_name'),
+                    'homework1': item.get('homework1'),
+                    'homework2': item.get('homework2'),
+                    'homework3': item.get('homework3'),
+                    'homework4': item.get('homework4'),
+                    'homework5': item.get('homework5'),
+                    'experiment1': item.get('experiment1'),
+                    'experiment2': item.get('experiment2'),
+                    'attendance1': item.get('attendance1'),
+                    'attendance2': item.get('attendance2'),
+                    'attendance3': item.get('attendance3'),
+                    'attendance4': item.get('attendance4'),
+                    'attendance5': item.get('attendance5'),
+                    'review_note': item.get('review_note'),
+                    'system_score': system_score if system_score > 0 else None,
+                    'report_score': report_score if report_score > 0 else None,
+                    'usual_score': usual_score,
+                    'final_score': round_half_up(final_score) if final_score is not None else None,
+                    'total_score': total_score,
+                    'conclusion': conclusion,
+                })
+
+            return Response({
+                'success': True,
+                'data': preview_data,
+                'total_count': len(result['data']),
+                'errors': result['errors'][:10],
+            })
+
+        except Exception as e:
+            logger.error(f"预览图形学记分册失败: {str(e)}", exc_info=True)
+            return Response({
+                'success': False,
+                'error': f'预览失败: {str(e)}',
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='import-graphics-gradebook')
+    def import_graphics_gradebook(self, request):
+        """导入图形学记分册Excel"""
+        from apps.scores.excel_handlers import GradebookExcelHandler
+
+        serializer = ExcelUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'message': '数据验证失败',
+                'errors': serializer.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        file = serializer.validated_data['file']
+        course_class_id = serializer.validated_data['course_class_id']
+
+        try:
+            handler = GradebookExcelHandler()
+            result = handler.parse_excel(file, course_class_id)
+
+            if not result['success']:
+                return Response({
+                    'success': False,
+                    'message': 'Excel解析失败',
+                    'errors': result['errors'],
+                }, status=status.HTTP_400_NOT_FOUND)
+
+            if not result.get('data') or len(result['data']) == 0:
+                return Response({
+                    'success': False,
+                    'message': 'Excel解析成功但没有找到有效数据',
+                    'errors': result.get('errors', []) + ['未找到有效的数据行，请检查Excel文件格式'],
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 创建导入日志
+            import_log = ScoreImportLog.objects.create(
+                file_name=file.name,
+                file_path='',
+                course_class_id=course_class_id,
+                imported_by=request.user,
+                total_rows=len(result['data']),
+                column_mapping=result.get('column_mapping', {}),
+                status='processing'
+            )
+
+            # 导入数据（使用标准的import_gradebooks方法）
+            import_result = handler.import_gradebooks(
+                result['data'],
+                course_class_id,
+                request.user.id
+            )
+
+            # 更新导入日志
+            import_log.success_rows = import_result['success']
+            import_log.failed_rows = import_result['failed']
+            import_log.error_log = '\n'.join(import_result['errors'])
+            import_log.status = 'completed' if import_result['failed'] == 0 else 'partial'
+            import_log.completed_at = timezone.now()
+            import_log.save()
+
+            return Response({
+                'success': True,
+                'message': f'导入完成：成功 {import_result["success"]} 条，失败 {import_result["failed"]} 条',
+                'data': {
+                    'success_count': import_result['success'],
+                    'failed_count': import_result['failed'],
+                    'errors': import_result['errors'][:10],
+                },
+                'import_log_id': import_log.id,
+            })
+
+        except Exception as e:
+            logger.error(f"导入图形学记分册失败: {str(e)}", exc_info=True)
+            return Response({
+                'success': False,
+                'message': f'导入失败: {str(e)}',
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='graphics-classes')
+    def graphics_classes(self, request):
+        """获取图形学课程的班级列表"""
+        from apps.courses.models import CourseClass, Course
+
+        try:
+            # 查找图形学课程
+            courses = Course.objects.filter(course_name__icontains='图形学')
+            course_ids = courses.values_list('id', flat=True)
+
+            # 查找这些课程下的班级
+            classes = CourseClass.objects.filter(course_id__in=course_ids).select_related('course', 'main_teacher')
+
+            result = []
+            for cls in classes:
+                # 获取学生数量
+                students_count = cls.students.count()
+                # 获取记分册数量
+                gradebook_count = cls.gradebooks.count()
+
+                result.append({
+                    'id': cls.id,
+                    'course_id': cls.course_id,
+                    'course_name': cls.course.course_name if cls.course else '',
+                    'course_code': cls.course.course_code if cls.course else '',
+                    'class_name': cls.class_name,
+                    'main_teacher': cls.main_teacher_id,
+                    'main_teacher_name': cls.main_teacher.first_name or cls.main_teacher.username if cls.main_teacher else '',
+                    'students_count': students_count,
+                    'gradebook_count': gradebook_count,
+                })
+
+            return Response({
+                'success': True,
+                'results': result
+            })
+
+        except Exception as e:
+            logger.error(f"获取图形学班级列表失败: {str(e)}", exc_info=True)
+            return Response({
+                'success': False,
+                'error': f'获取班级列表失败: {str(e)}',
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AlgorithmScoreViewSet(viewsets.ModelViewSet):

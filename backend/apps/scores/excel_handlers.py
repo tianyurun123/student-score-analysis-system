@@ -702,6 +702,8 @@ class GradebookExcelHandler:
             'attendance4': ['考勤4', 'attendance4', '考勤四', 'att4'],
             'attendance5': ['考勤5', 'attendance5', '考勤五', 'att5'],
             'review_note': ['复习笔记', 'review_note', '笔记', '复习', 'review'],
+            'system_score': ['系统', 'system', '系统成绩', 'sys'],
+            'report_score': ['报告', 'report', '报告成绩'],
             'final_score': ['期末成绩', 'final_score', '期末', 'final', '期末考试', '期末考'],
         }
 
@@ -879,7 +881,7 @@ class GradebookExcelHandler:
                             if field in ['homework1', 'homework2', 'homework3', 'homework4', 'homework5',
                                         'experiment1', 'experiment2',
                                         'attendance1', 'attendance2', 'attendance3', 'attendance4', 'attendance5',
-                                        'review_note', 'final_score']:
+                                        'review_note', 'final_score', 'system_score', 'report_score']:
                                 try:
                                     # 尝试转换为浮点数
                                     if isinstance(value, str):
@@ -1053,18 +1055,18 @@ class GradebookExcelHandler:
                                 'attendance4': item.get('attendance4'),
                                 'attendance5': item.get('attendance5'),
                                 'review_note': item.get('review_note'),
+                                'system_score': item.get('system_score'),
+                                'report_score': item.get('report_score'),
                                 'final_score': item.get('final_score'),
                                 'updated_by': user,
                             }
                         )
+
                         if created:
                             gradebook.created_by = user
-                            gradebook.save()
                             logger.info(f"创建记分册记录: 学生={student_id}, 班级={course_class.id} ({course_class.class_name})")
-                        else:
-                            logger.info(f"更新记分册记录: 学生={student_id}, 班级={course_class.id} ({course_class.class_name})")
 
-                        # 重新计算成绩
+                        # 重新计算成绩并保存（会触发Score记录的创建/更新）
                         gradebook.calculate_scores()
                         gradebook.save()
 

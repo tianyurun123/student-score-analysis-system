@@ -254,3 +254,33 @@ export function getClassesWithAlgorithmScores(params) {
     params
   })
 }
+
+// 图形学记分册相关API
+export function previewGraphicsGradebook(data) {
+  return request({
+    url: '/scores/gradebooks/preview-graphics-gradebook/',
+    method: 'post',
+    data,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export function importGraphicsGradebook(data) {
+  return request({
+    url: '/scores/gradebooks/import-graphics-gradebook/',
+    method: 'post',
+    data,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export function getGraphicsClasses() {
+  return request({
+    url: '/scores/gradebooks/graphics-classes/',
+    method: 'get'
+  })
+}

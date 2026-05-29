@@ -3,9 +3,13 @@
     <div class="page-header">
       <h1 class="page-title">图形学成绩管理</h1>
       <div class="page-actions">
-        <el-button type="primary" @click="$router.push('/scores/import')">
+        <el-button type="warning" @click="handleOpenConfig">
+          <el-icon><Setting /></el-icon>
+          配置公式
+        </el-button>
+        <el-button type="primary" @click="$router.push('/scores/gradebook-import')">
           <el-icon><Upload /></el-icon>
-          导入成绩
+          导入记分册
         </el-button>
         <el-button type="success" @click="handleExport" :disabled="!searchForm.course_class_id">
           <el-icon><Download /></el-icon>
@@ -117,37 +121,44 @@
           <!-- 基本信息列 -->
           <el-table-column prop="student_id" label="学号" width="120" fixed="left" />
           <el-table-column prop="student_name" label="姓名" width="100" fixed="left" />
-          
-          <!-- 原始成绩列 -->
-          <el-table-column prop="attendance_score" label="点名" width="80" />
-          <el-table-column label="电子笔记" width="100">
-            <template #default="{ row }">
-              {{ row.extra_scores && row.extra_scores['电子笔记'] ? row.extra_scores['电子笔记'].toFixed(1) : '-' }}
-            </template>
+
+          <!-- 平时表现 -->
+          <el-table-column label="平时表现" align="center">
+            <el-table-column prop="attendance_score" label="点名" width="80" />
+            <el-table-column label="电子笔记" width="100">
+              <template #default="{ row }">
+                {{ row.extra_scores && row.extra_scores['电子笔记'] ? row.extra_scores['电子笔记'].toFixed(1) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="homework_score" label="作业成绩" width="100" />
           </el-table-column>
-          <el-table-column prop="homework_score" label="作业成绩" width="100" />
+
+          <!-- 期末 -->
+          <el-table-column label="期末" align="center">
+            <el-table-column label="作品" width="80">
+              <template #default="{ row }">
+                {{ row.extra_scores && row.extra_scores['作品'] ? row.extra_scores['作品'].toFixed(1) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="报告" width="80">
+              <template #default="{ row }">
+                {{ row.extra_scores && row.extra_scores['报告'] ? row.extra_scores['报告'].toFixed(1) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="final_total" label="期末成绩" width="100">
+              <template #default="{ row }">
+                {{ row.final_total !== null && row.final_total !== undefined ? Math.floor(row.final_total) : '-' }}
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <!-- 原始成绩列（保留平时成绩和实验） -->
           <el-table-column prop="usual_total" label="平时成绩" width="100">
             <template #default="{ row }">
               {{ row.usual_total ? Math.round(row.usual_total) : '-' }}
             </template>
           </el-table-column>
-          
           <el-table-column prop="experiment_score" label="实验" width="80" />
-          <el-table-column label="作品" width="80">
-            <template #default="{ row }">
-              {{ row.extra_scores && row.extra_scores['作品'] ? row.extra_scores['作品'].toFixed(1) : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="报告" width="80">
-            <template #default="{ row }">
-              {{ row.extra_scores && row.extra_scores['报告'] ? row.extra_scores['报告'].toFixed(1) : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="final_total" label="期末平均" width="100">
-            <template #default="{ row }">
-              {{ row.final_total !== null && row.final_total !== undefined ? Math.floor(row.final_total) : '-' }}
-            </template>
-          </el-table-column>
 
           <!-- 课程目标1 -->
           <el-table-column label="课程目标1" align="center">
@@ -426,15 +437,191 @@
         <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 配置公式对话框 -->
+    <el-dialog
+      v-model="configDialogVisible"
+      title="课程目标计算公式配置"
+      width="900px"
+      :close-on-click-modal="false"
+    >
+      <div style="margin-bottom: 20px">
+        <el-select
+          v-model="configCourseClassId"
+          placeholder="请选择班级"
+          filterable
+          @change="handleConfigClassChange"
+          style="width: 300px"
+        >
+          <el-option
+            v-for="cls in allClasses"
+            :key="cls.id"
+            :label="`${cls.course_name} - ${cls.class_name}`"
+            :value="cls.id"
+          />
+        </el-select>
+        <span v-if="configCourseClassId" style="margin-left: 10px; color: #67c23a">
+          已选择班级，可编辑公式配置
+        </span>
+      </div>
+
+      <el-tabs v-model="configActiveTab" :disabled="!configCourseClassId">
+        <el-tab-pane label="平时成绩公式" name="usual">
+          <el-card shadow="never">
+            <el-form label-width="150px">
+              <el-form-item label="点名权重">
+                <el-input-number v-model="configData.usual_score_formula.attendance_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.usual_score_formula.attendance_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="电子笔记权重">
+                <el-input-number v-model="configData.usual_score_formula.e_notes_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.usual_score_formula.e_notes_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="作业成绩权重">
+                <el-input-number v-model="configData.usual_score_formula.homework_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.usual_score_formula.homework_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="总权重">
+                <el-input-number v-model="configData.usual_score_formula.total_weight" :min="0.01" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（用于归一化，当前: {{ configData.usual_score_formula.total_weight }}）</span>
+              </el-form-item>
+              <el-alert type="info" :closable="false" style="margin-top: 10px">
+                <template #title>
+                  计算公式: 平时成绩 = (点名 × {{ configData.usual_score_formula.attendance_weight }} + 电子笔记 × {{ configData.usual_score_formula.e_notes_weight }} + 作业成绩 × {{ configData.usual_score_formula.homework_weight }}) / {{ configData.usual_score_formula.total_weight }}
+                </template>
+              </el-alert>
+            </el-form>
+          </el-card>
+        </el-tab-pane>
+        
+        <el-tab-pane label="期末成绩公式" name="final">
+          <el-card shadow="never">
+            <template v-if="isGraphicsCourse">
+              <el-alert type="success" :closable="false">
+                <template #title>
+                  图形学课程期末成绩公式：<strong>期末成绩 = (作品 + 报告) / 2</strong>
+                </template>
+                此公式由记分册导入数据直接计算，无需配置。
+              </el-alert>
+            </template>
+            <el-form v-else label-width="150px">
+              <el-form-item label="实验权重">
+                <el-input-number v-model="configData.final_score_formula.experiment_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.final_score_formula.experiment_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="作品权重">
+                <el-input-number v-model="configData.final_score_formula.work_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.final_score_formula.work_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="报告权重">
+                <el-input-number v-model="configData.final_score_formula.report_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.final_score_formula.report_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="总权重">
+                <el-input-number v-model="configData.final_score_formula.total_weight" :min="0.01" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（用于归一化，当前: {{ configData.final_score_formula.total_weight }}）</span>
+              </el-form-item>
+              <el-alert type="info" :closable="false" style="margin-top: 10px">
+                <template #title>
+                  计算公式: 期末成绩 = (实验 × {{ configData.final_score_formula.experiment_weight }} + 作品 × {{ configData.final_score_formula.work_weight }} + 报告 × {{ configData.final_score_formula.report_weight }}) / {{ configData.final_score_formula.total_weight }}
+                </template>
+              </el-alert>
+            </el-form>
+          </el-card>
+        </el-tab-pane>
+        
+        <el-tab-pane label="最终成绩公式" name="grade">
+          <el-card shadow="never">
+            <el-form label-width="150px">
+              <el-form-item label="平时成绩权重">
+                <el-input-number v-model="configData.final_grade_formula.usual_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.final_grade_formula.usual_weight }}）</span>
+              </el-form-item>
+              <el-form-item label="期末成绩权重">
+                <el-input-number v-model="configData.final_grade_formula.final_weight" :min="0" :max="1" :step="0.01" :precision="2" />
+                <span class="formula-hint">（当前: {{ configData.final_grade_formula.final_weight }}）</span>
+              </el-form-item>
+              <el-alert type="info" :closable="false" style="margin-top: 10px">
+                <template #title>
+                  计算公式: 最终成绩 = 平时成绩 × {{ configData.final_grade_formula.usual_weight }} + 期末成绩 × {{ configData.final_grade_formula.final_weight }}
+                </template>
+              </el-alert>
+            </el-form>
+          </el-card>
+        </el-tab-pane>
+        
+        <el-tab-pane label="课程目标配置" name="objectives">
+          <el-card shadow="never" v-for="(obj, index) in configData.objectives" :key="index" style="margin-bottom: 15px">
+            <template #header>
+              <span style="font-weight: bold">{{ obj.name }}（满分: {{ obj.max_score }}）</span>
+            </template>
+            <el-form label-width="150px">
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <el-form-item label="平时权重">
+                    <el-input-number v-model="obj.usual_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="平时子权重">
+                    <el-input-number v-model="obj.usual_sub_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="满分">
+                    <el-input-number v-model="obj.max_score" :min="1" :max="100" :step="1" :precision="1" size="small" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <el-form-item label="实验权重">
+                    <el-input-number v-model="obj.experiment_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="实验子权重">
+                    <el-input-number v-model="obj.experiment_sub_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <el-form-item label="期末权重">
+                    <el-input-number v-model="obj.final_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="期末子权重">
+                    <el-input-number v-model="obj.final_sub_weight" :min="0" :max="1" :step="0.01" :precision="2" size="small" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-alert type="info" :closable="false">
+                <template #title>
+                  计算公式: {{ obj.name }}达成情况 = 平时成绩 × {{ obj.usual_weight }} × {{ obj.usual_sub_weight }} + 实验 × {{ obj.experiment_weight }} × {{ obj.experiment_sub_weight }} + 期末成绩 × {{ obj.final_weight }} × {{ obj.final_sub_weight }}
+                </template>
+              </el-alert>
+            </el-form>
+          </el-card>
+        </el-tab-pane>
+      </el-tabs>
+      
+      <template #footer>
+        <el-button @click="configDialogVisible = false">取消</el-button>
+        <el-button type="warning" @click="handleResetConfig">恢复默认</el-button>
+        <el-button type="primary" @click="handleSaveConfig" :loading="savingConfig">保存配置</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Download, Refresh, ArrowDown, Plus, Delete } from '@element-plus/icons-vue'
+import { Upload, Download, Refresh, ArrowDown, Plus, Delete, Setting } from '@element-plus/icons-vue'
 import { getScores, createScore, updateScore, deleteScore, exportScores, exportAchievement, getClassesWithScores } from '@/api/scores'
-import { getClasses } from '@/api/courses'
+import { getClasses, getObjectiveConfig, setObjectiveConfig } from '@/api/courses'
 import { getObjectiveAchievement, recalculateObjectives } from '@/api/analysis'
 
 const loading = ref(false)
@@ -447,6 +634,69 @@ const classesWithScores = ref([])
 const editDialogVisible = ref(false)
 const editFormRef = ref(null)
 const objectiveData = ref({})
+const configDialogVisible = ref(false)
+const configActiveTab = ref('usual')
+const savingConfig = ref(false)
+const currentCourseId = ref(null)
+const configCourseClassId = ref(null)
+const allClasses = ref([])
+const isGraphicsCourse = ref(false)
+
+const DEFAULT_CONFIG = {
+  usual_score_formula: {
+    attendance_weight: 0.05,
+    e_notes_weight: 0.05,
+    homework_weight: 0.1,
+    total_weight: 0.2
+  },
+  final_score_formula: {
+    experiment_weight: 0,
+    work_weight: 0.5,
+    report_weight: 0.5,
+    total_weight: 1.0
+  },
+  final_grade_formula: {
+    usual_weight: 0.4,
+    final_weight: 0.6
+  },
+  objectives: [
+    {
+      number: 1,
+      name: '课程目标1',
+      usual_weight: 0.2,
+      usual_sub_weight: 0.5,
+      experiment_weight: 0,
+      experiment_sub_weight: 0,
+      final_weight: 0.6,
+      final_sub_weight: 0.35,
+      max_score: 31.0
+    },
+    {
+      number: 2,
+      name: '课程目标2',
+      usual_weight: 0.2,
+      usual_sub_weight: 0.3,
+      experiment_weight: 0.5,
+      experiment_sub_weight: 0.2,
+      final_weight: 0.6,
+      final_sub_weight: 0.35,
+      max_score: 37.0
+    },
+    {
+      number: 3,
+      name: '课程目标3',
+      usual_weight: 0.2,
+      usual_sub_weight: 0.2,
+      experiment_weight: 0.5,
+      experiment_sub_weight: 0.2,
+      final_weight: 0.6,
+      final_sub_weight: 0.3,
+      max_score: 32.0
+    }
+  ]
+}
+
+const configData = reactive(JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
 
 const searchForm = reactive({
   course_class_id: null,
@@ -914,6 +1164,88 @@ const handleExportClass = async (row) => {
     ElMessage.error('导出失败: ' + (error.response?.data?.error || error.message))
   }
 }
+
+const handleOpenConfig = async () => {
+  configCourseClassId.value = null
+  configActiveTab.value = 'usual'
+
+  try {
+    if (allClasses.value.length === 0) {
+      const response = await getClasses()
+      allClasses.value = response.results || response
+    }
+    configDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取班级列表失败: ' + (error.response?.data?.error || error.message))
+  }
+}
+
+const handleConfigClassChange = async (classId) => {
+  if (!classId) {
+    return
+  }
+
+  try {
+    const selectedClass = allClasses.value.find(cls => cls.id === classId)
+
+    if (!selectedClass || !selectedClass.course) {
+      ElMessage.warning('无法获取课程信息')
+      return
+    }
+
+    currentCourseId.value = selectedClass.course
+    isGraphicsCourse.value = selectedClass.course_name?.includes('图形学') || false
+
+    const response = await getObjectiveConfig(currentCourseId.value)
+
+    if (response.config) {
+      Object.assign(configData, JSON.parse(JSON.stringify(response.config)))
+    } else {
+      Object.assign(configData, JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
+    }
+  } catch (error) {
+    ElMessage.error('获取配置失败: ' + (error.response?.data?.error || error.message))
+  }
+}
+
+const handleResetConfig = () => {
+  Object.assign(configData, JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
+  ElMessage.success('已恢复默认配置')
+}
+
+const handleSaveConfig = async () => {
+  if (!currentCourseId.value) {
+    ElMessage.warning('请先选择一个班级')
+    return
+  }
+
+  savingConfig.value = true
+  try {
+    await setObjectiveConfig(currentCourseId.value, JSON.parse(JSON.stringify(configData)))
+    ElMessage.success('配置保存成功')
+
+    if (configCourseClassId.value) {
+      const shouldRecalculate = await ElMessageBox.confirm('配置已更新，是否重新计算该班级所有成绩？', '提示', {
+        type: 'info',
+        confirmButtonText: '重新计算',
+        cancelButtonText: '稍后计算'
+      })
+
+      if (shouldRecalculate === 'confirm' && configCourseClassId.value) {
+        searchForm.course_class_id = configCourseClassId.value
+        await handleRecalculate()
+      }
+    }
+
+    configDialogVisible.value = false
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('保存配置失败: ' + (error.response?.data?.error || error.message))
+    }
+  } finally {
+    savingConfig.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -940,5 +1272,11 @@ const handleExportClass = async (row) => {
 .pagination {
   margin-top: 20px;
   text-align: right;
+}
+
+.formula-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 10px;
 }
 </style>

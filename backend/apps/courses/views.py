@@ -242,6 +242,46 @@ class CourseViewSet(viewsets.ModelViewSet):
             'suggested_fields': list(set(suggested))
         })
 
+    @action(detail=True, methods=['get'], url_path='objective-config')
+    def get_objective_config(self, request, pk=None):
+        """获取课程目标配置"""
+        course = self.get_object()
+        from utils.objective_calculator import ObjectiveCalculator
+        
+        config = ObjectiveCalculator.get_course_config(course)
+        
+        return Response({
+            'course_id': course.id,
+            'course_name': course.course_name,
+            'config': config
+        })
+
+    @action(detail=True, methods=['post'], url_path='set-objective-config')
+    def set_objective_config(self, request, pk=None):
+        """设置课程目标配置"""
+        course = self.get_object()
+        config = request.data.get('config')
+        
+        if not config:
+            return Response({'error': '请提供配置数据'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(config, dict):
+            return Response({'error': '配置数据格式错误'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        required_keys = ['usual_score_formula', 'final_score_formula', 'final_grade_formula', 'objectives']
+        for key in required_keys:
+            if key not in config:
+                return Response({'error': f'配置缺少必要字段: {key}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        course.course_objectives = config
+        course.save(update_fields=['course_objectives'])
+        
+        return Response({
+            'message': '配置保存成功',
+            'course_id': course.id,
+            'config': config
+        })
+
 
 class CourseClassViewSet(viewsets.ModelViewSet):
     """课程班级视图集"""

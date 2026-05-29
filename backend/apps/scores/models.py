@@ -151,13 +151,23 @@ class Score(models.Model):
 
     def calculate_grade(self):
         """计算最终成绩"""
-        if not self.grading_policy:
-            return None
+        # 检查是否是图形学课程
+        is_graphics_course = False
+        try:
+            if hasattr(self.course_class, 'course') and self.course_class.course:
+                is_graphics_course = '图形学' in self.course_class.course.course_name
+        except:
+            pass
 
         # 获取评分公式配置
-        grading_scale = self.grading_policy.grading_scale or {}
-        usual_formula = grading_scale.get('usual_formula')
-        final_formula = grading_scale.get('final_formula')
+        grading_scale = {}
+        usual_formula = None
+        final_formula = None
+        
+        if self.grading_policy:
+            grading_scale = self.grading_policy.grading_scale or {}
+            usual_formula = grading_scale.get('usual_formula')
+            final_formula = grading_scale.get('final_formula')
 
         # 如果有自定义公式，使用自定义公式计算
         if usual_formula:
@@ -167,7 +177,7 @@ class Score(models.Model):
             attendance = self.attendance_score or 0  # 点名
             e_notes = self.extra_scores.get('电子笔记', 0) or 0  # 电子笔记
             homework = self.homework_score or 0  # 作业成绩
-            
+
             if (attendance + e_notes + homework) > 0:
                 self.usual_total = (attendance * 0.05 + e_notes * 0.05 + homework * 0.1) / 0.2
             else:
@@ -200,12 +210,18 @@ class Score(models.Model):
         # 计算期末分
         if final_formula:
             self.final_total = self._calculate_with_formula(final_formula)
+        elif is_graphics_course:
+            # 图形学课程：期末成绩 = (系统 + 报告) / 2，直接使用gradebook传入的final_score
+            if self.final_score is not None:
+                self.final_total = self.final_score
+            else:
+                self.final_total = 0
         else:
             # 默认期末平均计算公式：(实验*0.2+作品*0.3+报告*0.3)/0.8，直接取整（不四舍五入）
             experiment = self.experiment_score or 0
             work = self.extra_scores.get('作品', 0) or 0
             report = self.extra_scores.get('报告', 0) or 0
-            
+
             if experiment > 0 or work > 0 or report > 0:
                 self.final_total = int((experiment * 0.2 + work * 0.3 + report * 0.3) / 0.8)
             else:
@@ -218,13 +234,13 @@ class Score(models.Model):
             self.usual_entry = round((self.usual_total * 0.2 + experiment * 0.2) / 0.4)
         else:
             self.usual_entry = None
-        
-        # 期末录入 = 期末平均（直接取整，不四舍五入）
+
+        # 期末录入 = 期末成绩（直接取整）
         if self.final_total is not None:
-            self.final_entry = int(self.final_total)
+            self.final_entry = round(self.final_total)
         else:
             self.final_entry = None
-        
+
         # 计算最终成绩
         # 最终成绩 = 平时录入*0.4 + 期末录入*0.6，取整数
         if self.usual_entry is not None and self.final_entry is not None:
@@ -512,13 +528,18 @@ class Gradebook(models.Model):
     
     # 复习笔记
     review_note = models.FloatField(null=True, blank=True, verbose_name='复习笔记')
-    
+
+    # 系统成绩和报告（图形学课程用）
+    system_score = models.FloatField(null=True, blank=True, verbose_name='系统')
+    report_score = models.FloatField(null=True, blank=True, verbose_name='报告')
+
     # 期末成绩
     final_score = models.FloatField(null=True, blank=True, verbose_name='期末成绩')
-    
+
     # 计算后的成绩
     usual_score = models.FloatField(null=True, blank=True, verbose_name='平时成绩')
     total_score = models.FloatField(null=True, blank=True, verbose_name='总评成绩')
+    conclusion = models.CharField(max_length=20, null=True, blank=True, verbose_name='结论')
     
     # 审计字段
     created_by = models.ForeignKey(
@@ -548,54 +569,161 @@ class Gradebook(models.Model):
         return f"{self.student.username} - {self.course_class}"
     
     def calculate_scores(self):
-        """计算平时成绩和总评成绩"""
-        # 计算平时成绩
-        # 平时 = ((作业1+作业2+作业3+作业4+作业5)/5*0.1 + (实验1+实验2)/2*0.2 + (考勤1+考勤2+考勤3+考勤4+考勤5)/5*0.05 + 复习笔记*0.05) / 0.4
-        
+        """计算平时成绩和总评成绩（图形学课程用）
+        公式：
+        - 平时 = (AVERAGE(作业一到作业五)*0.1 + AVERAGE(实验一到实验二)*0.2 + AVERAGE(考勤1到考勤5)*0.05 + 复习笔记*0.05) / 0.4
+        - 期末 = (系统 + 报告) / 2
+        - 总评 = 平时*0.4 + 期末*0.6
+        - 结论：>=90优秀，>=80良好，>=70中等，>=60及格，<60不及格
+        """
+
+        def round_half_up(x):
+            """四舍五入（标准数学舍入）"""
+            if x is None:
+                return None
+            import math
+            return math.floor(x + 0.5)
+
         # 作业平均分
         homework_scores = [self.homework1, self.homework2, self.homework3, self.homework4, self.homework5]
         homework_scores = [s for s in homework_scores if s is not None]
         homework_avg = sum(homework_scores) / len(homework_scores) if homework_scores else 0
-        
+
         # 实验平均分
         experiment_scores = [self.experiment1, self.experiment2]
         experiment_scores = [s for s in experiment_scores if s is not None]
         experiment_avg = sum(experiment_scores) / len(experiment_scores) if experiment_scores else 0
-        
+
         # 考勤平均分
         attendance_scores = [self.attendance1, self.attendance2, self.attendance3, self.attendance4, self.attendance5]
         attendance_scores = [s for s in attendance_scores if s is not None]
         attendance_avg = sum(attendance_scores) / len(attendance_scores) if attendance_scores else 0
-        
+
         # 复习笔记
         review_note_score = self.review_note or 0
-        
-        # 计算平时成绩（先计算，然后四舍五入取整）
+
+        # 计算平时成绩
+        # 平时 = (AVERAGE(作业一到作业五)*0.1 + AVERAGE(实验一到实验二)*0.2 + AVERAGE(考勤1到考勤5)*0.05 + 复习笔记*0.05) / 0.4
         usual_score = (
             homework_avg * 0.1 +
             experiment_avg * 0.2 +
             attendance_avg * 0.05 +
             review_note_score * 0.05
         ) / 0.4
-        
+
         # 平时成绩四舍五入取整
-        self.usual_score = round(usual_score) if usual_score > 0 else None
-        
+        self.usual_score = round_half_up(usual_score) if usual_score > 0 else None
+
+        # 计算期末成绩
+        # 期末 = (系统 + 报告) / 2，取整数
+        system_score = self.system_score or 0
+        report_score = self.report_score or 0
+        if system_score > 0 or report_score > 0:
+            self.final_score = round_half_up((system_score + report_score) / 2)
+        else:
+            self.final_score = None
+
         # 计算总评成绩
-        # 总评 = 平时（整数）*0.4 + 期末*0.6，然后四舍五入取整
+        # 总评 = 平时*0.4 + 期末*0.6
         if self.usual_score is not None and self.final_score is not None:
-            # 使用整数平时成绩计算总评
-            self.total_score = round(self.usual_score * 0.4 + self.final_score * 0.6)
+            self.total_score = round_half_up(self.usual_score * 0.4 + self.final_score * 0.6)
         else:
             self.total_score = None
-        
+
+        # 计算结论
+        # 结论：>=90优秀，>=80良好，>=70中等，>=60及格，<60不及格
+        if self.total_score is not None:
+            if self.total_score >= 90:
+                self.conclusion = '优秀'
+            elif self.total_score >= 80:
+                self.conclusion = '良好'
+            elif self.total_score >= 70:
+                self.conclusion = '中等'
+            elif self.total_score >= 60:
+                self.conclusion = '及格'
+            else:
+                self.conclusion = '不及格'
+        else:
+            self.conclusion = None
+
         return self.total_score
     
     def save(self, *args, **kwargs):
-        """保存时自动计算成绩，如果是算法分析与设计课程，自动创建或更新AlgorithmScore"""
+        """保存时自动计算成绩，如果是图形学课程，自动创建或更新Score；如果是算法分析与设计课程，自动创建或更新AlgorithmScore"""
         self.calculate_scores()
         super().save(*args, **kwargs)
-        
+
+        # 如果是图形学课程，自动创建或更新Score
+        try:
+            course_name = self.course_class.course.course_name if hasattr(self.course_class, 'course') and self.course_class.course else ''
+            if '图形学' in course_name:
+                from apps.scores.models import Score
+                score, created = Score.objects.get_or_create(
+                    student=self.student,
+                    course_class=self.course_class,
+                    defaults={
+                        'created_by': self.created_by,
+                        'updated_by': self.updated_by
+                    }
+                )
+                if not created:
+                    score.updated_by = self.updated_by
+
+                # 计算各字段值
+                # 点名 = (考勤1+考勤2+考勤3+考勤4+考勤5)/5
+                attendance_scores = [self.attendance1, self.attendance2, self.attendance3, self.attendance4, self.attendance5]
+                attendance_scores = [s for s in attendance_scores if s is not None]
+                attendance_avg = sum(attendance_scores) / len(attendance_scores) if attendance_scores else 0
+                score.attendance_score = attendance_avg if attendance_avg > 0 else None
+
+                # 电子笔记 = 复习笔记
+                score.review_note_score = self.review_note
+                if '电子笔记' not in score.extra_scores:
+                    score.extra_scores['电子笔记'] = {}
+                score.extra_scores['电子笔记'] = self.review_note
+
+                # 作业成绩 = (作业一+作业二+作业三+作业四+作业五)/5
+                homework_scores = [self.homework1, self.homework2, self.homework3, self.homework4, self.homework5]
+                homework_scores = [s for s in homework_scores if s is not None]
+                homework_avg = sum(homework_scores) / len(homework_scores) if homework_scores else 0
+                score.homework_score = homework_avg if homework_avg > 0 else None
+
+                # 实验 = (实验一+实验二)/2
+                experiment_scores = [self.experiment1, self.experiment2]
+                experiment_scores = [s for s in experiment_scores if s is not None]
+                experiment_avg = sum(experiment_scores) / len(experiment_scores) if experiment_scores else 0
+                score.experiment_score = experiment_avg if experiment_avg > 0 else None
+
+                # 期末平均 = 记分册生成的期末列
+                score.final_score = self.final_score
+
+                # 作品 = 系统
+                if '作品' not in score.extra_scores:
+                    score.extra_scores['作品'] = {}
+                score.extra_scores['作品'] = self.system_score
+
+                # 报告 = 报告
+                if '报告' not in score.extra_scores:
+                    score.extra_scores['报告'] = {}
+                score.extra_scores['报告'] = self.report_score
+
+                # 保存Score（跳过课程目标计算，由Score自己的save处理）
+                score.save(skip_objective_calculation=True)
+
+                # 重新计算课程目标达成度
+                try:
+                    from utils.objective_calculator import ObjectiveCalculator
+                    ObjectiveCalculator.save_objective_achievements(score)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"计算课程目标达成度失败: {str(e)}")
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"自动创建/更新Score失败: {str(e)}")
+
         # 如果是算法分析与设计课程，自动创建或更新AlgorithmScore
         try:
             course_name = self.course_class.course.course_name if hasattr(self.course_class, 'course') and self.course_class.course else ''
@@ -614,7 +742,7 @@ class Gradebook(models.Model):
                     # 如果已存在，更新gradebook引用
                     algorithm_score.gradebook = self
                     algorithm_score.updated_by = self.updated_by
-                
+
                 # 重新计算所有成绩（从记分册计算平时成绩部分）
                 algorithm_score.calculate_all()
                 algorithm_score.save()

@@ -276,12 +276,12 @@ class GradebookSerializer(serializers.ModelSerializer):
             'homework1', 'homework2', 'homework3', 'homework4', 'homework5',
             'experiment1', 'experiment2',
             'attendance1', 'attendance2', 'attendance3', 'attendance4', 'attendance5',
-            'review_note', 'final_score',
-            'usual_score', 'total_score',
+            'review_note', 'system_score', 'report_score',
+            'final_score', 'usual_score', 'total_score', 'conclusion',
             'created_by', 'updated_by', 'created_at', 'updated_at',
         ]
         read_only_fields = [
-            'usual_score', 'total_score', 'created_at', 'updated_at',
+            'usual_score', 'total_score', 'conclusion', 'created_at', 'updated_at',
         ]
 
     def get_student_id(self, obj):
@@ -306,7 +306,7 @@ class GradebookCreateSerializer(serializers.ModelSerializer):
             'homework1', 'homework2', 'homework3', 'homework4', 'homework5',
             'experiment1', 'experiment2',
             'attendance1', 'attendance2', 'attendance3', 'attendance4', 'attendance5',
-            'review_note', 'final_score',
+            'review_note', 'system_score', 'report_score', 'final_score',
         ]
 
     def validate(self, attrs):

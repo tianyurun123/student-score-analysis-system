@@ -57,6 +57,12 @@ const routes = [
         meta: { title: '成绩导入', hidden: true }
       },
       {
+        path: 'scores/gradebook-import',
+        name: 'GraphicsGradebookImport',
+        component: () => import('@/views/Score/GraphicsGradebookImport.vue'),
+        meta: { title: '导入记分册', hidden: true }
+      },
+      {
         path: 'gradebooks',
         name: 'Gradebooks',
         component: () => import('@/views/Score/GradebookList.vue'),
