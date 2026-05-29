@@ -1,8 +1,5 @@
 \# 📊 学生成绩数据化分析管理系统
 
-Student Performance Digital Analysis \& Management System
-
-
 
 \## 📖 项目简介
 
