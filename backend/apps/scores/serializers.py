@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Q
-from apps.scores.models import Score, ScoreImportLog, ScoreAdjustment, Gradebook, AlgorithmScore
+from apps.scores.models import Score, ScoreImportLog, ScoreAdjustment, Gradebook
 from apps.courses.models import CourseClass, GradingPolicy
 from apps.users.models import User, StudentProfile
 
@@ -374,79 +374,5 @@ class GradebookCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class AlgorithmScoreSerializer(serializers.ModelSerializer):
-    """算法分析与设计成绩序列化器"""
-    student_name = serializers.SerializerMethodField()
-    student_id = serializers.SerializerMethodField()
-    course_name = serializers.SerializerMethodField()
-    class_name = serializers.SerializerMethodField()
 
-    class Meta:
-        model = AlgorithmScore
-        fields = [
-            'id', 'gradebook', 'course_class', 'student', 'student_name', 'student_id',
-            'course_name', 'class_name',
-            'class_performance', 'note_score', 'homework_avg', 'experiment_avg', 'usual_score',
-            'raw_paper_scores', 'M1', 'M2', 'M3', 'M4', 'final_paper_score',
-            'obj1_classroom', 'obj1_note', 'obj1_homework', 'obj1_experiment', 'obj1_final',
-            'obj1_achievement', 'obj1_degree',
-            'obj2_classroom', 'obj2_note', 'obj2_homework', 'obj2_experiment', 'obj2_final',
-            'obj2_achievement', 'obj2_degree',
-            'obj3_classroom', 'obj3_note', 'obj3_homework', 'obj3_experiment', 'obj3_final',
-            'obj3_achievement', 'obj3_degree',
-            'obj4_classroom', 'obj4_note', 'obj4_homework', 'obj4_experiment', 'obj4_final',
-            'obj4_achievement', 'obj4_degree',
-            'total_score', 'usual_entry', 'final_entry', 'final_grade',
-            'created_by', 'updated_by', 'created_at', 'updated_at',
-        ]
-        read_only_fields = [
-            'class_performance', 'note_score', 'homework_avg', 'experiment_avg', 'usual_score',
-            'obj1_classroom', 'obj1_note', 'obj1_homework', 'obj1_experiment', 'obj1_final',
-            'obj1_achievement', 'obj1_degree',
-            'obj2_classroom', 'obj2_note', 'obj2_homework', 'obj2_experiment', 'obj2_final',
-            'obj2_achievement', 'obj2_degree',
-            'obj3_classroom', 'obj3_note', 'obj3_homework', 'obj3_experiment', 'obj3_final',
-            'obj3_achievement', 'obj3_degree',
-            'obj4_classroom', 'obj4_note', 'obj4_homework', 'obj4_experiment', 'obj4_final',
-            'obj4_achievement', 'obj4_degree',
-            'total_score', 'usual_entry', 'final_entry', 'final_grade',
-            'created_at', 'updated_at',
-        ]
-
-    def get_student_name(self, obj):
-        """获取学生姓名"""
-        try:
-            return obj.student.first_name or obj.student.username
-        except:
-            return ''
-
-    def get_student_id(self, obj):
-        """获取学号"""
-        try:
-            if hasattr(obj.student, 'student_profile') and obj.student.student_profile:
-                return obj.student.student_profile.student_id
-            return obj.student.employee_id or obj.student.username
-        except:
-            try:
-                return obj.student.employee_id or obj.student.username
-            except:
-                return ''
-    
-    def get_course_name(self, obj):
-        """获取课程名称"""
-        try:
-            if obj.course_class and obj.course_class.course:
-                return obj.course_class.course.course_name
-            return ''
-        except:
-            return ''
-    
-    def get_class_name(self, obj):
-        """获取班级名称"""
-        try:
-            if obj.course_class:
-                return obj.course_class.class_name
-            return ''
-        except:
-            return ''
 

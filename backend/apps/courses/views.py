@@ -25,6 +25,36 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
+    def perform_destroy(self, instance):
+        """删除课程时，手动处理级联删除以避免外键约束错误"""
+        from apps.scores.models import Gradebook, Score
+        
+        # 获取课程的所有班级
+        course_classes = instance.classes.all()
+        
+        for course_class in course_classes:
+            # 删除 Gradebook
+            Gradebook.objects.filter(course_class=course_class).delete()
+            
+            # 删除 Score
+            Score.objects.filter(course_class=course_class).delete()
+            
+            # 删除 Enrollment
+            Enrollment.objects.filter(course_class=course_class).delete()
+            
+            # 删除 CourseObjectiveAchievement
+            from apps.courses.models import CourseObjectiveAchievement
+            CourseObjectiveAchievement.objects.filter(score__course_class=course_class).delete()
+        
+        # 删除班级
+        course_classes.delete()
+        
+        # 删除评分政策
+        GradingPolicy.objects.filter(course=instance).delete()
+        
+        # 最后删除课程
+        instance.delete()
+
     def get_queryset(self):
         """根据用户权限过滤查询集"""
         queryset = super().get_queryset()

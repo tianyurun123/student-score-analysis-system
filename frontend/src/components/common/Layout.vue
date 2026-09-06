@@ -3,7 +3,7 @@
     <el-aside width="200px" class="sidebar">
       <div class="logo">
         <img src="@/assets/images/logo.png" alt="Logo" class="logo-img" />
-        <h2>学生成绩数据化分析管理系统</h2>
+        <h5>计算机图形学课程目标达成度分析系统</h5>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -35,14 +35,10 @@
             <span>成绩管理</span>
           </template>
           <el-menu-item index="/scores">
-            <el-icon><Document /></el-icon>
-            <span>图形学成绩</span>
-          </el-menu-item>
-          <el-menu-item index="/gradebooks">
-            <el-icon><Document /></el-icon>
-            <span>算法成绩</span>
-          </el-menu-item>
-        </el-sub-menu>
+          <el-icon><Document /></el-icon>
+          <span>图形学成绩</span>
+        </el-menu-item>
+      </el-sub-menu>
         <el-sub-menu index="score-analysis">
           <template #title>
             <el-icon><DataAnalysis /></el-icon>

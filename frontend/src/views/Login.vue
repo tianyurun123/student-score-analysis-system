@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h2>学生成绩数据化分析管理系统</h2>
+        <h2>计算机图形学课程目标达成度分析系统</h2>
       </div>
       <el-form
         ref="loginFormRef"

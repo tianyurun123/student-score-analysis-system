@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("scores", "0005_algorithmscore_raw_paper_scores"),
+        ("scores", "0003_gradebook"),
     ]
 
     operations = [

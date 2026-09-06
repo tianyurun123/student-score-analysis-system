@@ -3,10 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">质量分析</h1>
       <div class="page-actions">
-<!--        <el-button type="success" @click="handleExport" :disabled="!analysisData">-->
-<!--          <el-icon><Download /></el-icon>-->
-<!--          导出数据-->
-<!--        </el-button>-->
+
       </div>
     </div>
 
@@ -20,22 +17,12 @@
             style="width: 300px"
             @change="handleSearch"
           >
-            <el-option-group label="算法课程">
-              <el-option
-                v-for="cls in algorithmClasses"
-                :key="'algo_' + cls.id"
-                :label="`${cls.course_name} - ${cls.class_name}`"
-                :value="cls.id"
-              />
-            </el-option-group>
-            <el-option-group label="图形学课程">
-              <el-option
-                v-for="cls in graphicsClasses"
-                :key="'graph_' + cls.id"
-                :label="`${cls.course_name} - ${cls.class_name}`"
-                :value="cls.id"
-              />
-            </el-option-group>
+            <el-option
+              v-for="cls in graphicsClasses"
+              :key="cls.id"
+              :label="`${cls.course_name} - ${cls.class_name}`"
+              :value="cls.id"
+            />
           </el-select>
         </el-form-item>
       </el-form>
@@ -130,7 +117,7 @@
         </template>
 
         <!-- 图形学课程的质量分析（单一文本框） -->
-        <div v-if="isGraphicsCourse">
+        <div>
           <el-input
             v-model="analysisTexts.graphics_analysis"
             type="textarea"
@@ -139,41 +126,7 @@
           />
         </div>
 
-        <!-- 算法课程的质量分析（分三部分） -->
-        <div v-else>
-          <!-- 试题质量分析 -->
-          <div style="margin-bottom: 25px;">
-            <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px;">试题质量分析</div>
-            <el-input
-              v-model="analysisTexts.question_quality"
-              type="textarea"
-              :rows="5"
-              placeholder="请输入试题质量分析内容..."
-            />
-          </div>
 
-          <!-- 考试(卷面)成绩分析 -->
-          <div style="margin-bottom: 25px;">
-            <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px;">考试(卷面)成绩分析</div>
-            <el-input
-              v-model="analysisTexts.exam_score_analysis"
-              type="textarea"
-              :rows="5"
-              placeholder="请输入考试(卷面)成绩分析内容..."
-            />
-          </div>
-
-          <!-- 教学效果分析及改进措施 -->
-          <div>
-            <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px;">教学效果分析及改进措施</div>
-            <el-input
-              v-model="analysisTexts.teaching_effectiveness"
-              type="textarea"
-              :rows="5"
-              placeholder="请输入教学效果分析及改进措施..."
-            />
-          </div>
-        </div>
       </el-card>
 
       <!-- 评价工作小组意见 -->
@@ -207,7 +160,7 @@
       </el-card>
     </div>
 
-    <el-empty v-else description="请选择算法课程班级查看质量分析数据" />
+    <el-empty v-else description="请选择图形学课程班级查看质量分析数据" />
   </div>
 </template>
 
@@ -215,12 +168,11 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { getClassesWithAlgorithmScores, getAlgorithmScores, getGraphicsClasses, getScores } from '@/api/scores'
+import { getGraphicsClasses, getScores } from '@/api/scores'
 import { getClass } from '@/api/courses'
 import { exportQualityAnalysis } from '@/api/analysis'
 
 const loading = ref(false)
-const algorithmClasses = ref([])
 const graphicsClasses = ref([])
 const analysisData = ref(null)
 
@@ -243,16 +195,13 @@ const basicInfo = reactive({
 
 const isGraphicsCourse = computed(() => {
   if (!searchForm.course_class_id) return false
-  const selectedClass = [...algorithmClasses.value, ...graphicsClasses.value].find(
+  const selectedClass = graphicsClasses.value.find(
     cls => cls.id === searchForm.course_class_id
   )
   return selectedClass?.course_name?.includes('图形学') || false
 })
 
 const analysisTexts = reactive({
-  question_quality: '本次考试试题包括填空题、分析讨论题、算法理解题、算法分析与设计题等，考查了学生对基本概念、原理和方法的理解，对算法分析与设计的规范化方法掌握情况，以及对算法原理的综合分析和实现能力。试题符合教学大纲要求，涵盖了教学计划中所有章节的知识点，题量和难度适中。',
-  exam_score_analysis: '成绩分布显示班级最高分93分，最低分40分，优秀3人，良好4人，中等7人，及格8人，不及格5人，平均分69.41分。算法理解题得分率较高，其次是填空题，最后是分析讨论题和算法分析与设计题。这表明学生在面对具体应用性题目时，具有良好的分析视角和实践设计能力，但对分析设计能力的掌握还需要加强。总体来说，教学目标的达成情况良好。',
-  teaching_effectiveness: '结合课堂状态、实验实训和作业反馈的综合情况，学生在课堂上注意力集中，按时提交作业，按时完成实践作业。通过本课程的系统学习，学生基本掌握了算法分析与设计的基本概念、核心原理和常用方法，同时也具备了算法综合分析能力和实际实现能力，达到了教学大纲中对课程的基本要求。结合本次考试试卷答题情况分析，学生失分的核心原因在于对分析设计能力的掌握较弱。今后有必要重点加强对知识回忆能力和综合分析能力的培养。',
   group_opinion: '',
   signer: '',
   sign_date: '',
@@ -270,7 +219,7 @@ const scoreDistributionTableData = computed(() => {
   }
 
   const scores = analysisData.value.students
-    .map(s => isGraphicsCourse.value ? s.final_grade : s.final_paper_score)
+    .map(s => s.final_grade)
     .filter(s => s !== null && s !== undefined)
     .map(s => parseFloat(s))
 
@@ -315,7 +264,7 @@ const statistics = computed(() => {
   }
 
   const scores = analysisData.value.students
-    .map(s => isGraphicsCourse.value ? s.final_grade : s.final_paper_score)
+    .map(s => s.final_grade)
     .filter(s => s !== null && s !== undefined)
     .map(s => parseFloat(s))
 
@@ -340,18 +289,8 @@ const statistics = computed(() => {
 })
 
 onMounted(async () => {
-  await Promise.all([loadAlgorithmClasses(), loadGraphicsClasses()])
+  await loadGraphicsClasses()
 })
-
-const loadAlgorithmClasses = async () => {
-  try {
-    const response = await getClassesWithAlgorithmScores()
-    algorithmClasses.value = response.results || response.data || []
-  } catch (error) {
-    ElMessage.error('加载算法班级列表失败')
-    console.error(error)
-  }
-}
 
 const loadGraphicsClasses = async () => {
   try {
@@ -371,7 +310,6 @@ const handleSearch = async () => {
 
   loading.value = true
   try {
-    // 获取课程班级详细信息
     let classDetail = null
     try {
       classDetail = await getClass(searchForm.course_class_id)
@@ -379,17 +317,11 @@ const handleSearch = async () => {
       console.warn('获取班级详情失败，使用默认值:', error)
     }
 
-    const selectedClass = [...algorithmClasses.value, ...graphicsClasses.value].find(
+    const selectedClass = graphicsClasses.value.find(
       cls => cls.id === searchForm.course_class_id
     )
 
-    if (isGraphicsCourse.value) {
-      // 图形学课程的处理
-      await loadGraphicsCourseData(selectedClass, classDetail)
-    } else {
-      // 算法课程的处理
-      await loadAlgorithmCourseData(selectedClass, classDetail)
-    }
+    await loadGraphicsCourseData(selectedClass, classDetail)
   } catch (error) {
     ElMessage.error('加载数据失败: ' + (error.response?.data?.error || error.message))
     console.error(error)
@@ -463,85 +395,6 @@ const loadGraphicsCourseData = async (selectedClass, classDetail) => {
       student_id: score.student_id,
       student_name: score.student_name,
       final_grade: score.final_grade
-    }))
-  }
-}
-
-const loadAlgorithmCourseData = async (selectedClass, classDetail) => {
-  // 直接调用算法成绩接口获取步骤三的数据
-  const response = await getAlgorithmScores({
-    course_class_id: searchForm.course_class_id,
-    page_size: 1000,
-    page: 1
-  })
-
-  let scores = []
-  if (response.results) {
-    scores = response.results
-    const totalCount = response.count || scores.length
-    let nextUrl = response.next
-
-    let currentPage = 1
-    while (nextUrl && scores.length < totalCount) {
-      currentPage++
-      try {
-        const nextResponse = await getAlgorithmScores({
-          course_class_id: searchForm.course_class_id,
-          page_size: 1000,
-          page: currentPage
-        })
-        if (nextResponse.results && nextResponse.results.length > 0) {
-          scores = scores.concat(nextResponse.results)
-          nextUrl = nextResponse.next
-          if (!nextUrl) break
-        } else {
-          break
-        }
-      } catch (error) {
-        console.warn('获取下一页数据失败:', error)
-        break
-      }
-    }
-  } else if (response.data) {
-    scores = response.data
-  } else if (Array.isArray(response)) {
-    scores = response
-  }
-
-  if (!scores || scores.length === 0) {
-    analysisData.value = null
-    ElMessage.warning('该班级暂无成绩数据')
-    return
-  }
-
-  // 获取课程和班级信息
-  const firstScore = scores[0]
-
-  // 填充基本信息
-  basicInfo.course_name = selectedClass?.course_name || firstScore?.course_name || ''
-  basicInfo.class_name = selectedClass?.class_name || firstScore?.class_name || ''
-  basicInfo.exam_count = scores.length
-
-  // 从班级详情获取更多信息
-  if (classDetail) {
-    basicInfo.teacher_name = classDetail.main_teacher_name || (classDetail.main_teacher?.first_name || classDetail.main_teacher?.username || '')
-    // 从序列化器中获取课程信息
-    basicInfo.department = classDetail.course_department || ''
-    basicInfo.hours = classDetail.course_hours || ''
-  }
-
-  // 提取卷面成绩数据（M1, M2, M3, M4, final_paper_score）
-  analysisData.value = {
-    course_name: basicInfo.course_name,
-    class_name: basicInfo.class_name,
-    students: scores.map(score => ({
-      student_id: score.student_id,
-      student_name: score.student_name,
-      M1: score.M1,
-      M2: score.M2,
-      M3: score.M3,
-      M4: score.M4,
-      final_paper_score: score.final_paper_score
     }))
   }
 }

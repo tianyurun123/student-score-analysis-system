@@ -63,12 +63,6 @@ const routes = [
         meta: { title: '导入记分册', hidden: true }
       },
       {
-        path: 'gradebooks',
-        name: 'Gradebooks',
-        component: () => import('@/views/Score/GradebookList.vue'),
-        meta: { title: '算法成绩管理', icon: 'Document' }
-      },
-      {
         path: 'students',
         name: 'Students',
         component: () => import('@/views/User/StudentList.vue'),

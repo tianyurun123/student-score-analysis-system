@@ -798,34 +798,3 @@ const handlePageChange = () => {
 }
 </script>
 
-<style scoped>
-.class-list {
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.pagination {
-  margin-top: 20px;
-  text-align: right;
-}
-
-.student-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.student-count-info {
-  padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-</style>

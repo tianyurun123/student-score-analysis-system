@@ -582,6 +582,9 @@ const handleViewSyllabus = async (row) => {
     currentCourseId.value = row.id
     
     // 将后端数据转换为前端需要的格式
+    // 后端返回的 course_objectives 是对象，前端期望的是数组
+    const courseObjectives = courseDetail.course_objectives?.objectives || courseDetail.course_objectives || []
+    
     syllabusPreview.value = {
       course_info: {
         course_code: courseDetail.course_code || '',
@@ -593,7 +596,7 @@ const handleViewSyllabus = async (row) => {
         usual_weight: courseDetail.grading_policy?.usual_weight || 0,
         final_weight: courseDetail.grading_policy?.final_weight || 0
       },
-      course_objectives: courseDetail.course_objectives || []
+      course_objectives: courseObjectives
     }
     
     viewSyllabusDialogVisible.value = true
@@ -650,20 +653,3 @@ const handlePageChange = () => {
 }
 </script>
 
-<style scoped>
-.course-list {
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.pagination {
-  margin-top: 20px;
-  text-align: right;
-}
-</style>

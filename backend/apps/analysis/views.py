@@ -198,11 +198,10 @@ class AnalysisViewSet(viewsets.ViewSet):
                 
                 total_classes = classes.count()
 
-                # 计算学生数：每个课程对应班级的所有学生数总和
-                from apps.courses.models import Enrollment
-                total_students = Enrollment.objects.filter(
-                    course_class__in=classes
-                ).values('student').distinct().count()
+                # 计算学生数：每个班级学生数的总和（不去重，与班级列表保持一致）
+                total_students = 0
+                for cls in classes:
+                    total_students += cls.students.count()
                 
                 # 构建课程列表（课程名称）
                 course_names = [course.course_name for course in courses]
@@ -389,59 +388,12 @@ class AnalysisViewSet(viewsets.ViewSet):
             'count': count
         })
 
-    @action(detail=False, methods=['get'], url_path='quality-analysis')
-    def quality_analysis(self, request):
-        """质量分析（仅算法课程，使用卷面成绩）"""
-        from apps.scores.models import AlgorithmScore
-        from apps.courses.models import CourseClass
-        
-        course_class_id = request.query_params.get('course_class_id')
-        if not course_class_id:
-            return Response({'error': '请提供course_class_id'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            course_class = CourseClass.objects.select_related('course').get(id=course_class_id)
-            
-            # 权限检查：教师只能查看自己作为主讲教师或助教的班级，管理员可以查看所有班级
-            user = request.user
-            if user.user_type == 'teacher' and not (user.is_superuser or user.user_type == 'admin'):
-                if (course_class.main_teacher != user and 
-                    user not in course_class.assistant_teachers.all()):
-                    return Response({'error': '您没有权限查看该班级的数据'}, status=status.HTTP_403_FORBIDDEN)
-            
-            # 只支持算法分析与设计课程
-            if course_class.course.course_name != '算法分析与设计':
-                return Response({'error': '质量分析仅支持算法分析与设计课程'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            scores = AlgorithmScore.objects.filter(course_class=course_class).select_related('student')
-            
-            students_data = []
-            for score in scores:
-                students_data.append({
-                    'student_id': score.student_id,
-                    'student_name': score.student_name or (score.student.first_name if score.student else ''),
-                    'M1': score.M1,
-                    'M2': score.M2,
-                    'M3': score.M3,
-                    'M4': score.M4,
-                    'final_paper_score': score.final_paper_score
-                })
-            
-            return Response({
-                'course_name': course_class.course.course_name,
-                'class_name': course_class.class_name,
-                'students': students_data
-            })
-        except CourseClass.DoesNotExist:
-            return Response({'error': '课程班级不存在'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            logger.error(f"获取质量分析数据失败: {str(e)}", exc_info=True)
-            return Response({'error': f'获取数据失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'], url_path='export-quality-analysis')
     def export_quality_analysis(self, request):
         """导出质量分析Word文档"""
-        from apps.scores.models import AlgorithmScore, Score
+        from apps.scores.models import Score
         from apps.courses.models import CourseClass
         from apps.analysis.export_quality import generate_quality_analysis_doc
         from io import BytesIO
@@ -449,7 +401,6 @@ class AnalysisViewSet(viewsets.ViewSet):
         import math
 
         course_class_id = request.data.get('course_class_id')
-        is_graphics_course = request.data.get('is_graphics_course', False)
 
         if not course_class_id:
             return Response({'error': '请提供course_class_id'}, status=status.HTTP_400_BAD_REQUEST)
@@ -465,18 +416,8 @@ class AnalysisViewSet(viewsets.ViewSet):
                         user not in course_class.assistant_teachers.all()):
                         return Response({'error': '您没有权限查看该班级的数据'}, status=status.HTTP_403_FORBIDDEN)
 
-            # 根据课程类型判断
-            course_name = course_class.course.course_name
-            if '图形学' in course_name:
-                is_graphics_course = True
-            elif '算法' in course_name:
-                is_graphics_course = False
-
             # 获取成绩数据
-            if is_graphics_course:
-                scores = Score.objects.filter(course_class=course_class).select_related('student')
-            else:
-                scores = AlgorithmScore.objects.filter(course_class=course_class).select_related('student')
+            scores = Score.objects.filter(course_class=course_class).select_related('student')
 
             basic_info = request.data.get('basic_info', {})
             analysis_texts_raw = request.data.get('analysis_texts', {})
@@ -617,7 +558,7 @@ class AnalysisViewSet(viewsets.ViewSet):
             logger.info(f"basic_info_dict键: {list(basic_info_dict.keys()) if isinstance(basic_info_dict, dict) else 'N/A'}")
             logger.info(f"analysis_texts键: {list(analysis_texts.keys()) if isinstance(analysis_texts, dict) else 'N/A'}")
 
-            doc = generate_quality_analysis_doc(basic_info_dict, analysis_texts, distribution, statistics, is_graphics_course)
+            doc = generate_quality_analysis_doc(basic_info_dict, analysis_texts, distribution, statistics, True)
 
             output = BytesIO()
             doc.save(output)
@@ -640,8 +581,8 @@ class AnalysisViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='achievement-analysis')
     def achievement_analysis(self, request):
-        """达成情况分析（算法课程4个目标，图形学课程3个目标）"""
-        from apps.scores.models import AlgorithmScore, Score
+        """达成情况分析（图形学课程3个目标）"""
+        from apps.scores.models import Score
         from apps.courses.models import CourseClass
         import math
         
@@ -664,345 +605,190 @@ class AnalysisViewSet(viewsets.ViewSet):
             
             expected_degree = 0.6  # 期望达成度
             
-            if course_name == '算法分析与设计':
-                # 算法课程：直接获取算法成绩数据
-                scores = AlgorithmScore.objects.filter(course_class=course_class).select_related('student')
-                
-                if not scores.exists():
-                    return Response({'error': '该班级暂无成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                # 计算总成绩分布（使用total_score）
-                total_scores = [s.total_score for s in scores if s.total_score is not None]
-                
-                if not total_scores:
-                    return Response({'error': '该班级暂无总成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                total_count = len(total_scores)
-                
-                # 成绩分布
-                ranges = [
-                    {'label': '不及格', 'min': 0, 'max': 59},
-                    {'label': '及格', 'min': 60, 'max': 69},
-                    {'label': '中等', 'min': 70, 'max': 79},
-                    {'label': '良好', 'min': 80, 'max': 89},
-                    {'label': '优秀', 'min': 90, 'max': 100}
-                ]
-                
-                distribution = []
-                for r in ranges:
-                    count = len([s for s in total_scores if r['min'] <= s <= r['max']])
-                    percentage = (count / total_count * 100) if total_count > 0 else 0
-                    distribution.append({
-                        'label': r['label'],
-                        'range': f"{r['min']}~{r['max']}",
-                        'count': count,
-                        'percentage': percentage
-                    })
-                
-                # 统计信息
-                max_score = max(total_scores)
-                min_score = min(total_scores)
-                avg_score = sum(total_scores) / len(total_scores)
-                variance = sum([(s - avg_score) ** 2 for s in total_scores]) / len(total_scores)
-                std_dev = math.sqrt(variance)
-                
-                statistics = {
-                    'max_score': max_score,
-                    'min_score': min_score,
-                    'avg_score': avg_score,
-                    'std_dev': std_dev
-                }
-                
-                obj1_degrees = [s.obj1_degree for s in scores if s.obj1_degree is not None]
-                obj2_degrees = [s.obj2_degree for s in scores if s.obj2_degree is not None]
-                obj3_degrees = [s.obj3_degree for s in scores if s.obj3_degree is not None]
-                obj4_degrees = [s.obj4_degree for s in scores if s.obj4_degree is not None]
-                
-                def calculate_achievement(degrees):
-                    if len(degrees) == 0:
-                        return {'evaluated': 0.0, 'rate': 0.0}
-                    evaluated = sum(degrees) / len(degrees)
-                    pass_count = len([d for d in degrees if d >= expected_degree])
-                    rate = (pass_count / total_count * 100) if total_count > 0 else 0.0
-                    return {'evaluated': evaluated, 'rate': rate}
-                
-                obj1 = calculate_achievement(obj1_degrees)
-                obj2 = calculate_achievement(obj2_degrees)
-                obj3 = calculate_achievement(obj3_degrees)
-                obj4 = calculate_achievement(obj4_degrees)
-                
-                # 总和：四个目标的平均值
-                # 评估达成度：四个目标的评估达成度的平均值
-                total_evaluated = (obj1['evaluated'] + obj2['evaluated'] + obj3['evaluated'] + obj4['evaluated']) / 4.0
-                # 达成率：四个目标的达成率的平均值
-                total_rate = (obj1['rate'] + obj2['rate'] + obj3['rate'] + obj4['rate']) / 4.0
-                
-                def get_evaluation_text(obj_code, evaluated, rate):
-                    """根据达成度生成评价文本（达成评价、存在问题、改进措施）"""
-                    if obj_code == 'M1':
-                        if evaluated >= expected_degree:
-                            return '该课程目标实现,达成度较高。说明学生对于基本概念的掌握较好。'
-                        else:
-                            return '该课程目标实现,达成度不高。说明学生对于基本概念的掌握有待加强。'
-                    elif obj_code == 'M2':
-                        if evaluated >= expected_degree:
-                            return '该课程目标实现,达成度较高,说明学生对于算法功能和实现的正规化方法的掌握较好。'
-                        else:
-                            return '该课程目标实现,达成度不高。说明学生对于算法功能和实现的正规化方法的掌握有待加强。'
-                    elif obj_code == 'M3':
-                        if evaluated >= expected_degree:
-                            return '该课程目标实现,达成度较高,说明学生对于复杂算法的分析和实现能力较好。'
-                        else:
-                            return '该课程目标实现,达成度不高。说明学生对于复杂算法的分析和实现能力有待加强。'
-                    elif obj_code == 'M4':
-                        if evaluated >= expected_degree:
-                            return '该课程目标实现,达成度较高,说明学生对于算法分析与设计能力掌握较好。'
-                        else:
-                            return '该课程目标实现,达成度不高,说明学生对于算法分析与设计能力掌握有待加深。'
-                    elif obj_code == '总和':
-                        if evaluated >= expected_degree:
-                            return '课程目标达成。'
-                        else:
-                            return '课程目标未完全达成，需要进一步改进教学方法和内容。'
-                
-                achievement_data = [
-                    {
-                        'objective_code': 'M1',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj1['evaluated'],
-                        'achievement_rate': obj1['rate'],
-                        'evaluation_text': get_evaluation_text('M1', obj1['evaluated'], obj1['rate'])
-                    },
-                    {
-                        'objective_code': 'M2',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj2['evaluated'],
-                        'achievement_rate': obj2['rate'],
-                        'evaluation_text': get_evaluation_text('M2', obj2['evaluated'], obj2['rate'])
-                    },
-                    {
-                        'objective_code': 'M3',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj3['evaluated'],
-                        'achievement_rate': obj3['rate'],
-                        'evaluation_text': get_evaluation_text('M3', obj3['evaluated'], obj3['rate'])
-                    },
-                    {
-                        'objective_code': 'M4',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj4['evaluated'],
-                        'achievement_rate': obj4['rate'],
-                        'evaluation_text': get_evaluation_text('M4', obj4['evaluated'], obj4['rate'])
-                    },
-                    {
-                        'objective_code': '总和',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': total_evaluated,
-                        'achievement_rate': total_rate,
-                        'evaluation_text': get_evaluation_text('总和', total_evaluated, total_rate)
-                    }
-                ]
-                
-                return Response({
-                    'course_name': course_name,
-                    'class_name': course_class.class_name,
-                    'distribution': distribution,
-                    'statistics': statistics,
-                    'achievement_data': achievement_data,
-                    'basic_info': {
-                        'course_name': course_class.course.course_name,
-                        'teacher_name': course_class.main_teacher.first_name if course_class.main_teacher else '',
-                        'department': course_class.course.department or '',
-                        'class_name': course_class.class_name,
-                        'hours': course_class.course.hours or 0,
-                        'exam_count': total_count
-                    }
+            # 图形学课程：3个目标
+            scores = Score.objects.filter(course_class=course_class).select_related('student')
+            
+            if not scores.exists():
+                return Response({'error': '该班级暂无成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 计算总成绩分布（使用final_grade）
+            final_grades = [s.final_grade for s in scores if s.final_grade is not None]
+            
+            if not final_grades:
+                return Response({'error': '该班级暂无总成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            total_count = len(final_grades)
+            
+            # 成绩分布
+            ranges = [
+                {'label': '不及格', 'min': 0, 'max': 59},
+                {'label': '及格', 'min': 60, 'max': 69},
+                {'label': '中等', 'min': 70, 'max': 79},
+                {'label': '良好', 'min': 80, 'max': 89},
+                {'label': '优秀', 'min': 90, 'max': 100}
+            ]
+            
+            distribution = []
+            for r in ranges:
+                count = len([s for s in final_grades if r['min'] <= s <= r['max']])
+                percentage = (count / total_count * 100) if total_count > 0 else 0
+                distribution.append({
+                    'label': r['label'],
+                    'range': f"{r['min']}~{r['max']}",
+                    'count': count,
+                    'percentage': percentage
                 })
-            else:
-                # 图形学课程：3个目标
-                scores = Score.objects.filter(course_class=course_class).select_related('student')
-                
-                if not scores.exists():
-                    return Response({'error': '该班级暂无成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                # 计算总成绩分布（使用final_grade）
-                final_grades = [s.final_grade for s in scores if s.final_grade is not None]
-                
-                if not final_grades:
-                    return Response({'error': '该班级暂无总成绩数据'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                total_count = len(final_grades)
-                
-                # 成绩分布
-                ranges = [
-                    {'label': '不及格', 'min': 0, 'max': 59},
-                    {'label': '及格', 'min': 60, 'max': 69},
-                    {'label': '中等', 'min': 70, 'max': 79},
-                    {'label': '良好', 'min': 80, 'max': 89},
-                    {'label': '优秀', 'min': 90, 'max': 100}
-                ]
-                
-                distribution = []
-                for r in ranges:
-                    count = len([s for s in final_grades if r['min'] <= s <= r['max']])
-                    percentage = (count / total_count * 100) if total_count > 0 else 0
-                    distribution.append({
-                        'label': r['label'],
-                        'range': f"{r['min']}~{r['max']}",
-                        'count': count,
-                        'percentage': percentage
-                    })
-                
-                # 统计信息
-                max_score = max(final_grades)
-                min_score = min(final_grades)
-                avg_score = sum(final_grades) / len(final_grades)
-                variance = sum([(s - avg_score) ** 2 for s in final_grades]) / len(final_grades)
-                std_dev = math.sqrt(variance)
-                
-                statistics = {
-                    'max_score': max_score,
-                    'min_score': min_score,
-                    'avg_score': avg_score,
-                    'std_dev': std_dev
-                }
-                
-                # 获取或计算课程目标达成度
-                score_ids = [score.id for score in scores]
-                existing_achievements = CourseObjectiveAchievement.objects.filter(
-                    score_id__in=score_ids
-                ).select_related('score').order_by('score_id', 'objective_number')
-                
-                achievement_map = {}
-                for ach in existing_achievements:
-                    if ach.score_id not in achievement_map:
-                        achievement_map[ach.score_id] = {}
-                    achievement_map[ach.score_id][ach.objective_number] = ach
-                
-                # 批量计算缺失的达成度
-                scores_to_calculate = []
-                for score in scores:
-                    if score.id not in achievement_map or len(achievement_map[score.id]) < 3:
-                        scores_to_calculate.append(score)
-                
-                if scores_to_calculate:
-                    from django.db import transaction
-                    with transaction.atomic():
-                        for score in scores_to_calculate:
-                            try:
-                                achievements = ObjectiveCalculator.save_objective_achievements(score)
-                                if score.id not in achievement_map:
-                                    achievement_map[score.id] = {}
-                                for ach in achievements:
-                                    achievement_map[score.id][ach.objective_number] = ach
-                            except Exception as e:
-                                logger.error(f"计算课程目标达成度失败 (score_id={score.id}): {str(e)}")
-                
-                # 提取达成度数据
-                obj1_degrees = []
-                obj2_degrees = []
-                obj3_degrees = []
-                
-                for score in scores:
-                    achievements = achievement_map.get(score.id, {})
-                    if 1 in achievements:
-                        obj1_degrees.append(achievements[1].achievement_degree)
-                    if 2 in achievements:
-                        obj2_degrees.append(achievements[2].achievement_degree)
-                    if 3 in achievements:
-                        obj3_degrees.append(achievements[3].achievement_degree)
-                
-                def calculate_achievement(degrees, count):
-                    if len(degrees) == 0:
-                        return {'evaluated': 0.0, 'rate': 0.0}
-                    evaluated = sum(degrees) / len(degrees)
-                    pass_count = len([d for d in degrees if d >= expected_degree])
-                    rate = (pass_count / count * 100) if count > 0 else 0.0
-                    return {'evaluated': evaluated, 'rate': rate}
-                
-                obj1 = calculate_achievement(obj1_degrees, total_count)
-                obj2 = calculate_achievement(obj2_degrees, total_count)
-                obj3 = calculate_achievement(obj3_degrees, total_count)
-                
-                # 总和：三个目标的平均值
-                total_evaluated = (obj1['evaluated'] + obj2['evaluated'] + obj3['evaluated']) / 3.0
-                total_rate = (obj1['rate'] + obj2['rate'] + obj3['rate']) / 3.0
-                
-                def get_evaluation(evaluated):
+            
+            # 统计信息
+            max_score = max(final_grades)
+            min_score = min(final_grades)
+            avg_score = sum(final_grades) / len(final_grades)
+            variance = sum([(s - avg_score) ** 2 for s in final_grades]) / len(final_grades)
+            std_dev = math.sqrt(variance)
+            
+            statistics = {
+                'max_score': max_score,
+                'min_score': min_score,
+                'avg_score': avg_score,
+                'std_dev': std_dev
+            }
+            
+            # 获取或计算课程目标达成度
+            score_ids = [score.id for score in scores]
+            existing_achievements = CourseObjectiveAchievement.objects.filter(
+                score_id__in=score_ids
+            ).select_related('score').order_by('score_id', 'objective_number')
+            
+            achievement_map = {}
+            for ach in existing_achievements:
+                if ach.score_id not in achievement_map:
+                    achievement_map[ach.score_id] = {}
+                achievement_map[ach.score_id][ach.objective_number] = ach
+            
+            # 批量计算缺失的达成度
+            scores_to_calculate = []
+            for score in scores:
+                if score.id not in achievement_map or len(achievement_map[score.id]) < 3:
+                    scores_to_calculate.append(score)
+            
+            if scores_to_calculate:
+                from django.db import transaction
+                with transaction.atomic():
+                    for score in scores_to_calculate:
+                        try:
+                            achievements = ObjectiveCalculator.save_objective_achievements(score)
+                            if score.id not in achievement_map:
+                                achievement_map[score.id] = {}
+                            for ach in achievements:
+                                achievement_map[score.id][ach.objective_number] = ach
+                        except Exception as e:
+                            logger.error(f"计算课程目标达成度失败 (score_id={score.id}): {str(e)}")
+            
+            # 提取达成度数据
+            obj1_degrees = []
+            obj2_degrees = []
+            obj3_degrees = []
+            
+            for score in scores:
+                achievements = achievement_map.get(score.id, {})
+                if 1 in achievements:
+                    obj1_degrees.append(achievements[1].achievement_degree)
+                if 2 in achievements:
+                    obj2_degrees.append(achievements[2].achievement_degree)
+                if 3 in achievements:
+                    obj3_degrees.append(achievements[3].achievement_degree)
+            
+            def calculate_achievement(degrees, count):
+                if len(degrees) == 0:
+                    return {'evaluated': 0.0, 'rate': 0.0}
+                evaluated = sum(degrees) / len(degrees)
+                pass_count = len([d for d in degrees if d >= expected_degree])
+                rate = (pass_count / count * 100) if count > 0 else 0.0
+                return {'evaluated': evaluated, 'rate': rate}
+            
+            obj1 = calculate_achievement(obj1_degrees, total_count)
+            obj2 = calculate_achievement(obj2_degrees, total_count)
+            obj3 = calculate_achievement(obj3_degrees, total_count)
+            
+            # 总和：三个目标的平均值
+            total_evaluated = (obj1['evaluated'] + obj2['evaluated'] + obj3['evaluated']) / 3.0
+            total_rate = (obj1['rate'] + obj2['rate'] + obj3['rate']) / 3.0
+            
+            def get_evaluation(evaluated):
+                if evaluated >= expected_degree:
+                    return '达成'
+                elif evaluated >= expected_degree * 0.8:
+                    return '基本达成'
+                else:
+                    return '未达成'
+            
+            def get_evaluation_text(obj_code, evaluated, rate):
+                """根据达成度生成评价文本"""
+                if obj_code == '课程目标1':
                     if evaluated >= expected_degree:
-                        return '达成'
-                    elif evaluated >= expected_degree * 0.8:
-                        return '基本达成'
+                        return '该课程目标达成度较高，说明学生对于图形学基本概念和原理的掌握较好。'
                     else:
-                        return '未达成'
-                
-                def get_evaluation_text(obj_code, evaluated, rate):
-                    """根据达成度生成评价文本"""
-                    if obj_code == '课程目标1':
-                        if evaluated >= expected_degree:
-                            return '该课程目标达成度较高，说明学生对于图形学基本概念和原理的掌握较好。'
-                        else:
-                            return '该课程目标达成度不高，说明学生对于图形学基本概念和原理的掌握有待加强。'
-                    elif obj_code == '课程目标2':
-                        if evaluated >= expected_degree:
-                            return '该课程目标达成度较高，说明学生对于图形学算法实现能力较好。'
-                        else:
-                            return '该课程目标达成度不高，说明学生对于图形学算法实现能力有待加强。'
-                    elif obj_code == '课程目标3':
-                        if evaluated >= expected_degree:
-                            return '该课程目标达成度较高，说明学生对于图形学综合应用能力较好。'
-                        else:
-                            return '该课程目标达成度不高，说明学生对于图形学综合应用能力有待加强。'
-                    elif obj_code == '总和':
-                        if evaluated >= expected_degree:
-                            return '课程目标达成。'
-                        else:
-                            return '课程目标未完全达成，需要进一步改进教学方法和内容。'
-                
-                achievement_data = [
-                    {
-                        'objective_code': '课程目标1',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj1['evaluated'],
-                        'achievement_rate': obj1['rate'],
-                        'evaluation_text': get_evaluation_text('课程目标1', obj1['evaluated'], obj1['rate']),
-                        'problems': '',
-                        'improvements': ''
-                    },
-                    {
-                        'objective_code': '课程目标2',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj2['evaluated'],
-                        'achievement_rate': obj2['rate'],
-                        'evaluation_text': get_evaluation_text('课程目标2', obj2['evaluated'], obj2['rate']),
-                        'problems': '',
-                        'improvements': ''
-                    },
-                    {
-                        'objective_code': '课程目标3',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': obj3['evaluated'],
-                        'achievement_rate': obj3['rate'],
-                        'evaluation_text': get_evaluation_text('课程目标3', obj3['evaluated'], obj3['rate']),
-                        'problems': '',
-                        'improvements': ''
-                    },
-                    {
-                        'objective_code': '总和',
-                        'expected_degree': expected_degree,
-                        'evaluated_degree': total_evaluated,
-                        'achievement_rate': total_rate,
-                        'evaluation_text': get_evaluation_text('总和', total_evaluated, total_rate),
-                        'problems': '',
-                        'improvements': ''
-                    }
-                ]
-                
-                return Response({
-                    'course_name': course_name,
-                    'class_name': course_class.class_name,
-                    'distribution': distribution,
-                    'statistics': statistics,
+                        return '该课程目标达成度不高，说明学生对于图形学基本概念和原理的掌握有待加强。'
+                elif obj_code == '课程目标2':
+                    if evaluated >= expected_degree:
+                        return '该课程目标达成度较高，说明学生对于图形学算法实现能力较好。'
+                    else:
+                        return '该课程目标达成度不高，说明学生对于图形学算法实现能力有待加强。'
+                elif obj_code == '课程目标3':
+                    if evaluated >= expected_degree:
+                        return '该课程目标达成度较高，说明学生对于图形学综合应用能力较好。'
+                    else:
+                        return '该课程目标达成度不高，说明学生对于图形学综合应用能力有待加强。'
+                elif obj_code == '总和':
+                    if evaluated >= expected_degree:
+                        return '课程目标达成。'
+                    else:
+                        return '课程目标未完全达成，需要进一步改进教学方法和内容。'
+            
+            achievement_data = [
+                {
+                    'objective_code': '课程目标1',
+                    'expected_degree': expected_degree,
+                    'evaluated_degree': obj1['evaluated'],
+                    'achievement_rate': obj1['rate'],
+                    'evaluation_text': get_evaluation_text('课程目标1', obj1['evaluated'], obj1['rate']),
+                    'problems': '',
+                    'improvements': ''
+                },
+                {
+                    'objective_code': '课程目标2',
+                    'expected_degree': expected_degree,
+                    'evaluated_degree': obj2['evaluated'],
+                    'achievement_rate': obj2['rate'],
+                    'evaluation_text': get_evaluation_text('课程目标2', obj2['evaluated'], obj2['rate']),
+                    'problems': '',
+                    'improvements': ''
+                },
+                {
+                    'objective_code': '课程目标3',
+                    'expected_degree': expected_degree,
+                    'evaluated_degree': obj3['evaluated'],
+                    'achievement_rate': obj3['rate'],
+                    'evaluation_text': get_evaluation_text('课程目标3', obj3['evaluated'], obj3['rate']),
+                    'problems': '',
+                    'improvements': ''
+                },
+                {
+                    'objective_code': '总和',
+                    'expected_degree': expected_degree,
+                    'evaluated_degree': total_evaluated,
+                    'achievement_rate': total_rate,
+                    'evaluation_text': get_evaluation_text('总和', total_evaluated, total_rate),
+                    'problems': '',
+                    'improvements': ''
+                }
+            ]
+            
+            return Response({
+                'course_name': course_name,
+                'class_name': course_class.class_name,
+                'distribution': distribution,
+                'statistics': statistics,
                     'achievement_data': achievement_data,
                     'basic_info': {
                         'course_name': course_class.course.course_name,

@@ -83,8 +83,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { getDashboard, getObjectiveAchievement } from '@/api/analysis'
-import { getClassesWithScores, getClassesWithAlgorithmScores } from '@/api/scores'
-import { getScores, getAlgorithmScores } from '@/api/scores'
+import { getClassesWithScores, getScores } from '@/api/scores'
 import { ElMessage } from 'element-plus'
 import { Upload, Plus, Loading } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -161,30 +160,8 @@ const stats = computed(() => {
 
 const loadClassesWithScores = async () => {
   try {
-    // 加载普通成绩的班级
     const response = await getClassesWithScores()
-    const normalClasses = response.results || response || []
-    
-    // 加载算法成绩的班级
-    let algorithmClasses = []
-    try {
-      const algorithmResponse = await getClassesWithAlgorithmScores()
-      algorithmClasses = (algorithmResponse.results || algorithmResponse.data || []).map(cls => ({
-        id: cls.id,
-        course_code: cls.course_code,
-        course_name: cls.course_name,
-        class_name: cls.class_name,
-        main_teacher_name: cls.main_teacher_name,
-        score_count: cls.score_count,
-        students_count: cls.students_count,
-        is_algorithm: true // 标记为算法成绩班级
-      }))
-    } catch (error) {
-      console.error('加载算法成绩班级列表失败:', error)
-    }
-    
-    // 合并两个列表
-    classesWithScores.value = [...normalClasses, ...algorithmClasses]
+    classesWithScores.value = response.results || response || []
   } catch (error) {
     console.error('加载班级列表失败:', error)
   }
@@ -213,80 +190,30 @@ const loadAnalysisData = async () => {
   
   analysisLoading.value = true
   try {
-    // 检查选中的班级是否是算法成绩班级
-    const selectedClass = classesWithScores.value.find(cls => cls.id === selectedClassId.value)
-    const isAlgorithmClass = selectedClass?.is_algorithm || false
-    
     let scores = []
-    if (isAlgorithmClass) {
-      // 获取算法成绩数据（传递大的page_size以获取所有数据）
-      const algorithmResponse = await getAlgorithmScores({ 
+    
+    // 获取图形学成绩数据（处理分页）
+    let page = 1
+    let hasMore = true
+    while (hasMore) {
+      const response = await getScores({ 
         course_class_id: selectedClassId.value,
         page_size: 1000,
-        page: 1
+        page: page
       })
       
-      // 处理分页响应
-      scores = algorithmResponse.results || algorithmResponse.data || []
-      let nextUrl = algorithmResponse.next
-      const totalCount = algorithmResponse.count || scores.length
-      
-      // 如果有更多页面，继续获取所有数据
-      let currentPage = 1
-      while (nextUrl && scores.length < totalCount) {
-        currentPage++
-        try {
-          const nextResponse = await getAlgorithmScores({
-            course_class_id: selectedClassId.value,
-            page_size: 1000,
-            page: currentPage
-          })
-          if (nextResponse.results && nextResponse.results.length > 0) {
-            scores = scores.concat(nextResponse.results)
-            nextUrl = nextResponse.next
-            if (!nextUrl) break
-          } else {
-            break
-          }
-        } catch (error) {
-          console.warn('获取下一页算法成绩数据失败:', error)
-          break
-        }
-      }
-    } else {
-      // 获取普通成绩数据（传递大的page_size以获取所有数据）
-      const scoresResponse = await getScores({ 
-        course_class_id: selectedClassId.value, 
-        page_size: 1000,
-        page: 1
-      })
-      
-      // 处理分页响应
-      scores = scoresResponse.results || scoresResponse.data || []
-      let nextUrl = scoresResponse.next
-      const totalCount = scoresResponse.count || scores.length
-      
-      // 如果有更多页面，继续获取所有数据
-      let currentPage = 1
-      while (nextUrl && scores.length < totalCount) {
-        currentPage++
-        try {
-          const nextResponse = await getScores({
-            course_class_id: selectedClassId.value,
-            page_size: 1000,
-            page: currentPage
-          })
-          if (nextResponse.results && nextResponse.results.length > 0) {
-            scores = scores.concat(nextResponse.results)
-            nextUrl = nextResponse.next
-            if (!nextUrl) break
-          } else {
-            break
-          }
-        } catch (error) {
-          console.warn('获取下一页普通成绩数据失败:', error)
-          break
-        }
+      if (response.results) {
+        scores = scores.concat(response.results)
+        hasMore = response.next !== null
+        page++
+      } else if (response.data) {
+        scores = scores.concat(response.data)
+        hasMore = false
+      } else if (Array.isArray(response)) {
+        scores = scores.concat(response)
+        hasMore = false
+      } else {
+        hasMore = false
       }
     }
     
@@ -298,40 +225,25 @@ const loadAnalysisData = async () => {
     
     // 获取课程目标达成度数据
     let objectiveData = {}
-    if (isAlgorithmClass) {
-      // 对于算法成绩，直接从成绩数据中提取目标达成度
-      objectiveData = {
-        student_achievements: scores.map(score => ({
-          student_id: score.student_id,
-          student_name: score.student_name,
-          objective1: score.obj1_degree ? { degree: score.obj1_degree } : null,
-          objective2: score.obj2_degree ? { degree: score.obj2_degree } : null,
-          objective3: score.obj3_degree ? { degree: score.obj3_degree } : null,
-          objective4: score.obj4_degree ? { degree: score.obj4_degree } : null
-        }))
-      }
-    } else {
-      // 对于普通成绩，从API获取
-      try {
-        const objResponse = await getObjectiveAchievement(selectedClassId.value)
-        objectiveData = objResponse
-        
-        // 将课程目标数据合并到成绩列表中
-        const achievementMap = {}
-        if (objResponse.student_achievements) {
-          objResponse.student_achievements.forEach(ach => {
-            achievementMap[ach.student_id] = ach
-          })
-        }
-        
-        scores.forEach(score => {
-          // 尝试多种方式匹配学生ID
-          const studentId = score.student?.employee_id || score.student?.username || score.student_id
-          score.objective_achievements = achievementMap[studentId] || {}
+    try {
+      const objResponse = await getObjectiveAchievement(selectedClassId.value)
+      objectiveData = objResponse
+      
+      // 将课程目标数据合并到成绩列表中
+      const achievementMap = {}
+      if (objResponse.student_achievements) {
+        objResponse.student_achievements.forEach(ach => {
+          achievementMap[ach.student_id] = ach
         })
-      } catch (error) {
-        console.error('加载课程目标达成度失败:', error)
       }
+      
+      scores.forEach(score => {
+        // 尝试多种方式匹配学生ID
+        const studentId = score.student?.employee_id || score.student?.username || score.student_id
+        score.objective_achievements = achievementMap[studentId] || {}
+      })
+    } catch (error) {
+      console.error('加载课程目标达成度失败:', error)
     }
     
     // 处理数据

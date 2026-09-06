@@ -23929,3 +23929,419 @@ INFO 2026-05-29 22:14:56,323 basehttp 11136 38692 "GET /api/scores/scores/?cours
 INFO 2026-05-29 22:15:50,710 basehttp 11136 12820 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
 INFO 2026-05-29 22:15:50,746 basehttp 11136 43660 "GET /api/scores/algorithm-scores/classes-with-scores/ HTTP/1.1" 200 778
 INFO 2026-05-29 22:15:54,123 basehttp 11136 35616 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-08 15:56:59,138 autoreload 34204 23064 Watching for file changes with StatReloader
+WARNING 2026-06-08 15:58:04,350 log 34204 36640 Unauthorized: /api/analysis/dashboard/
+WARNING 2026-06-08 15:58:04,351 basehttp 34204 36640 "GET /api/analysis/dashboard/ HTTP/1.1" 401 171
+INFO 2026-06-08 15:58:04,372 basehttp 34204 19500 "POST /api/auth/logout/ HTTP/1.1" 200 26
+INFO 2026-06-08 15:58:13,212 basehttp 34204 39328 "POST /api/auth/login/ HTTP/1.1" 200 793
+INFO 2026-06-08 15:58:13,329 basehttp 34204 18868 "GET /api/analysis/dashboard/ HTTP/1.1" 200 383
+INFO 2026-06-08 15:58:13,410 basehttp 34204 16140 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-08 15:58:13,455 basehttp 34204 39240 "GET /api/scores/algorithm-scores/classes-with-scores/ HTTP/1.1" 200 778
+INFO 2026-06-21 20:23:26,822 autoreload 32196 10668 Watching for file changes with StatReloader
+WARNING 2026-06-21 20:35:24,599 log 32196 31720 Unauthorized: /api/analysis/dashboard/
+WARNING 2026-06-21 20:35:24,611 basehttp 32196 31720 "GET /api/analysis/dashboard/ HTTP/1.1" 401 171
+INFO 2026-06-21 20:35:24,684 basehttp 32196 36164 "POST /api/auth/logout/ HTTP/1.1" 200 26
+INFO 2026-06-21 20:36:02,782 basehttp 32196 4956 "POST /api/auth/login/ HTTP/1.1" 200 793
+INFO 2026-06-21 20:36:02,977 basehttp 32196 19644 "GET /api/analysis/dashboard/ HTTP/1.1" 200 383
+INFO 2026-06-21 20:36:03,075 basehttp 32196 41628 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:36:05,916 basehttp 32196 21360 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 4423
+ERROR 2026-06-21 20:36:09,335 log 32196 41712 Internal Server Error: /api/courses/courses/4/
+Traceback (most recent call last):
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\mysql\base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+MySQLdb.IntegrityError: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`student-scores`.`scores_algorithmscore`, CONSTRAINT `scores_algorithmscor_gradebook_id_f418f87e_fk_scores_gr` FOREIGN KEY (`gradebook_id`) REFERENCES `scores_gradebook` (`id`))')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Anaconda\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+  File "D:\Anaconda\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+  File "D:\Anaconda\Lib\site-packages\django\db\models\base.py", line 1281, in delete
+    return collector.delete()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\query.py", line 1221, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\mysql\base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+django.db.utils.IntegrityError: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`student-scores`.`scores_algorithmscore`, CONSTRAINT `scores_algorithmscor_gradebook_id_f418f87e_fk_scores_gr` FOREIGN KEY (`gradebook_id`) REFERENCES `scores_gradebook` (`id`))')
+ERROR 2026-06-21 20:36:09,361 basehttp 32196 41712 "DELETE /api/courses/courses/4/ HTTP/1.1" 500 201832
+INFO 2026-06-21 20:36:17,483 basehttp 32196 37588 "GET /api/analysis/dashboard/ HTTP/1.1" 200 383
+INFO 2026-06-21 20:36:17,543 basehttp 32196 30252 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:36:20,766 basehttp 32196 35864 "GET /api/analysis/dashboard/ HTTP/1.1" 200 383
+INFO 2026-06-21 20:36:20,920 basehttp 32196 43116 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:36:23,402 basehttp 32196 24936 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 4423
+ERROR 2026-06-21 20:36:26,050 log 32196 35080 Internal Server Error: /api/courses/courses/4/
+Traceback (most recent call last):
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\mysql\base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+MySQLdb.IntegrityError: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`student-scores`.`scores_algorithmscore`, CONSTRAINT `scores_algorithmscor_gradebook_id_f418f87e_fk_scores_gr` FOREIGN KEY (`gradebook_id`) REFERENCES `scores_gradebook` (`id`))')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Anaconda\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "D:\Anaconda\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+  File "D:\Anaconda\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+  File "D:\Anaconda\Lib\site-packages\django\db\models\base.py", line 1281, in delete
+    return collector.delete()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\query.py", line 1221, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\django\db\backends\mysql\base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\Anaconda\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+django.db.utils.IntegrityError: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`student-scores`.`scores_algorithmscore`, CONSTRAINT `scores_algorithmscor_gradebook_id_f418f87e_fk_scores_gr` FOREIGN KEY (`gradebook_id`) REFERENCES `scores_gradebook` (`id`))')
+ERROR 2026-06-21 20:36:26,055 basehttp 32196 35080 "DELETE /api/courses/courses/4/ HTTP/1.1" 500 201832
+INFO 2026-06-21 20:41:35,121 autoreload 32196 10668 D:\score_analysis\backend\apps\courses\views.py changed, reloading.
+INFO 2026-06-21 20:41:46,788 autoreload 24704 42660 Watching for file changes with StatReloader
+INFO 2026-06-21 20:42:14,407 autoreload 24704 42660 D:\score_analysis\backend\apps\scores\models.py changed, reloading.
+INFO 2026-06-21 20:42:17,460 autoreload 40932 42520 Watching for file changes with StatReloader
+INFO 2026-06-21 20:42:47,249 basehttp 40932 43992 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 4423
+INFO 2026-06-21 20:42:51,447 basehttp 40932 21544 "DELETE /api/courses/courses/4/ HTTP/1.1" 204 0
+INFO 2026-06-21 20:42:51,515 basehttp 40932 42552 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2587
+INFO 2026-06-21 20:42:53,503 basehttp 40932 13816 "GET /api/courses/courses/ HTTP/1.1" 200 2587
+INFO 2026-06-21 20:42:53,581 basehttp 40932 11320 "GET /api/courses/classes/?page=1&page_size=20 HTTP/1.1" 200 3649
+INFO 2026-06-21 20:42:53,592 basehttp 40932 23092 "GET /api/users/teachers/ HTTP/1.1" 200 756
+INFO 2026-06-21 20:42:55,684 basehttp 40932 3048 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 20:42:55,794 basehttp 40932 2748 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:42:57,919 basehttp 40932 42832 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2587
+INFO 2026-06-21 20:42:59,682 basehttp 40932 11780 "GET /api/courses/classes/?page=1&page_size=20 HTTP/1.1" 200 3649
+INFO 2026-06-21 20:42:59,688 basehttp 40932 2184 "GET /api/courses/courses/ HTTP/1.1" 200 2587
+INFO 2026-06-21 20:42:59,729 basehttp 40932 21564 "GET /api/users/teachers/ HTTP/1.1" 200 756
+INFO 2026-06-21 20:43:05,710 basehttp 40932 42552 "GET /api/users/teachers/?page=1&page_size=20 HTTP/1.1" 200 756
+INFO 2026-06-21 20:43:09,726 basehttp 40932 13860 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 20:43:09,756 basehttp 40932 30996 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:43:12,993 basehttp 40932 40444 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=10&student_id= HTTP/1.1" 200 13747
+INFO 2026-06-21 20:43:13,220 basehttp 40932 28592 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-21 20:43:13,669 basehttp 40932 27452 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:43:16,380 basehttp 40932 28520 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 20:43:19,661 basehttp 40932 21300 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:43:25,736 basehttp 40932 39292 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:44:53,360 basehttp 40932 14680 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:45:35,361 basehttp 40932 41828 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:45:36,002 basehttp 40932 42396 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:45:51,689 basehttp 40932 28956 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:46:03,646 basehttp 40932 27228 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:46:13,601 basehttp 40932 39596 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:46:25,489 basehttp 40932 31732 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 20:46:25,574 basehttp 40932 42108 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:46:35,582 basehttp 40932 8904 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=1 HTTP/1.1" 200 13737
+INFO 2026-06-21 20:46:35,663 basehttp 40932 41952 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=2 HTTP/1.1" 200 10326
+INFO 2026-06-21 20:46:35,792 basehttp 40932 2416 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-21 20:47:20,863 basehttp 40932 42540 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 20:47:20,965 basehttp 40932 43128 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:47:42,706 basehttp 40932 43120 "POST /api/auth/logout/ HTTP/1.1" 200 26
+INFO 2026-06-21 20:47:54,636 basehttp 40932 42224 "POST /api/auth/login/ HTTP/1.1" 200 793
+INFO 2026-06-21 20:47:54,737 basehttp 40932 11500 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 20:47:54,814 basehttp 40932 5744 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 20:54:42,798 basehttp 40932 9312 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=1 HTTP/1.1" 200 13737
+INFO 2026-06-21 20:54:42,880 basehttp 40932 5324 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=2 HTTP/1.1" 200 10326
+INFO 2026-06-21 20:54:43,004 basehttp 40932 25984 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-21 20:58:12,200 basehttp 40932 31796 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2587
+INFO 2026-06-21 21:04:06,478 basehttp 40932 44792 "POST /api/courses/courses/3/upload-syllabus/ HTTP/1.1" 200 183
+INFO 2026-06-21 21:05:40,421 basehttp 40932 44640 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:05:42,632 basehttp 40932 16660 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:05:51,918 basehttp 40932 36008 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:05:59,304 basehttp 40932 44220 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2587
+INFO 2026-06-21 21:06:00,454 basehttp 40932 22212 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:06:29,110 basehttp 40932 41884 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:10:13,689 basehttp 40932 43960 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2587
+INFO 2026-06-21 21:10:14,749 basehttp 40932 44280 "GET /api/courses/courses/3/ HTTP/1.1" 200 2535
+INFO 2026-06-21 21:13:47,950 basehttp 40932 27748 "POST /api/courses/courses/3/upload-syllabus/ HTTP/1.1" 200 168
+INFO 2026-06-21 21:13:53,381 basehttp 40932 44740 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2588
+INFO 2026-06-21 21:14:54,677 basehttp 40932 5340 "GET /api/courses/courses/3/ HTTP/1.1" 200 2536
+INFO 2026-06-21 21:15:05,034 basehttp 40932 32928 "GET /api/courses/courses/3/ HTTP/1.1" 200 2536
+INFO 2026-06-21 21:16:13,525 basehttp 40932 15772 "GET /api/courses/classes/?page=1&page_size=20 HTTP/1.1" 200 3649
+INFO 2026-06-21 21:16:13,567 basehttp 40932 44076 "GET /api/courses/courses/ HTTP/1.1" 200 2588
+INFO 2026-06-21 21:16:13,618 basehttp 40932 40660 "GET /api/users/teachers/ HTTP/1.1" 200 756
+INFO 2026-06-21 21:18:16,203 basehttp 40932 15732 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 21:18:16,265 basehttp 40932 32372 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:19:01,586 basehttp 40932 41828 "GET /api/courses/classes/?page=1&page_size=20 HTTP/1.1" 200 3649
+INFO 2026-06-21 21:19:01,622 basehttp 40932 44888 "GET /api/courses/courses/ HTTP/1.1" 200 2588
+INFO 2026-06-21 21:19:01,662 basehttp 40932 27252 "GET /api/users/teachers/ HTTP/1.1" 200 756
+INFO 2026-06-21 21:20:33,965 autoreload 40932 42520 D:\score_analysis\backend\apps\analysis\views.py changed, reloading.
+INFO 2026-06-21 21:20:38,845 autoreload 22348 44944 Watching for file changes with StatReloader
+INFO 2026-06-21 21:22:06,752 basehttp 22348 19976 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-21 21:22:06,810 basehttp 22348 43900 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:23:19,640 basehttp 22348 14528 "GET /api/courses/courses/ HTTP/1.1" 200 2588
+INFO 2026-06-21 21:23:19,640 basehttp 22348 44568 "GET /api/courses/classes/?page=1&page_size=20 HTTP/1.1" 200 3649
+INFO 2026-06-21 21:23:19,663 basehttp 22348 43092 "GET /api/users/teachers/ HTTP/1.1" 200 756
+INFO 2026-06-21 21:23:21,482 basehttp 22348 23068 "GET /api/courses/enrollments/?course_class_id=10&no_pagination=true HTTP/1.1" 200 10872
+INFO 2026-06-21 21:26:48,462 basehttp 22348 42216 "GET /api/courses/enrollments/?course_class_id=10&no_pagination=true HTTP/1.1" 200 10872
+INFO 2026-06-21 21:31:56,021 basehttp 22348 16660 "GET /api/users/teachers/?page=1&page_size=20 HTTP/1.1" 200 756
+INFO 2026-06-21 21:33:50,352 basehttp 22348 10168 "GET /api/users/teachers/?page=1&page_size=20&search=admin HTTP/1.1" 200 426
+INFO 2026-06-21 21:34:48,362 basehttp 22348 38156 "GET /api/users/teachers/?page=1&page_size=20 HTTP/1.1" 200 756
+INFO 2026-06-21 21:35:06,609 basehttp 22348 26372 "PATCH /api/users/teachers/236/ HTTP/1.1" 200 522
+INFO 2026-06-21 21:35:06,649 basehttp 22348 44928 "GET /api/users/teachers/?page=1&page_size=20 HTTP/1.1" 200 1112
+INFO 2026-06-21 21:36:38,094 basehttp 22348 41608 "GET /api/users/teachers/236/ HTTP/1.1" 200 685
+INFO 2026-06-21 21:38:03,139 basehttp 22348 43292 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 21:38:03,187 basehttp 22348 38196 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:49:32,753 basehttp 22348 44188 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 21:51:25,126 excel_handlers 22348 44940 找到表头行: 第1行, 内容: ['学号', '姓名', '作业一', '作业二', '作业三']
+INFO 2026-06-21 21:51:25,137 excel_handlers 22348 9976 找到表头行: 第1行, 内容: ['学号', '姓名', '作业一', '作业二', '作业三']
+INFO 2026-06-21 21:51:25,203 excel_handlers 22348 44940 读取Excel成功: 共35行, 列数: 17
+INFO 2026-06-21 21:51:25,209 excel_handlers 22348 9976 读取Excel成功: 共35行, 列数: 17
+INFO 2026-06-21 21:51:25,210 excel_handlers 22348 44940 列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1']
+INFO 2026-06-21 21:51:25,210 excel_handlers 22348 9976 列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1']
+INFO 2026-06-21 21:51:25,211 excel_handlers 22348 44940 删除空行后: 共35行
+INFO 2026-06-21 21:51:25,212 excel_handlers 22348 9976 删除空行后: 共35行
+INFO 2026-06-21 21:51:25,213 excel_handlers 22348 44940 第一行数据: {'学号': '202008020108', '姓名': '任中君', '作业一': 70, '作业二': 75, '作业三': 74, '作业四': 76, '作业五': 78, '实验一': 60, '实验二': 60, '考勤1': 90, '考勤2': 100, '考勤3': 100, '考勤4': 90, '考勤5': 100, '复习笔记': 82, '系统': 70, '报告': 70}
+INFO 2026-06-21 21:51:25,215 excel_handlers 22348 9976 第一行数据: {'学号': '202008020108', '姓名': '任中君', '作业一': 70, '作业二': 75, '作业三': 74, '作业四': 76, '作业五': 78, '实验一': 60, '实验二': 60, '考勤1': 90, '考勤2': 100, '考勤3': 100, '考勤4': 90, '考勤5': 100, '复习笔记': 82, '系统': 70, '报告': 70}
+INFO 2026-06-21 21:51:25,216 excel_handlers 22348 44940 列名识别结果: {'学号': 'student_id', '姓名': 'student_name', '作业一': 'homework1', '作业二': 'homework2', '作业三': 'homework3', '作业四': 'homework4', '作业五': 'homework5', '实验一': 'experiment1', '实验二': 'experiment2', '考勤1': 'attendance1', '考勤2': 'attendance2', '考勤3': 'attendance3', '考勤4': 'attendance4', '考勤5': 'attendance5', '复习笔记': 'review_note', '系统': 'system_score', '报告': 'report_score'}
+INFO 2026-06-21 21:51:25,216 excel_handlers 22348 9976 列名识别结果: {'学号': 'student_id', '姓名': 'student_name', '作业一': 'homework1', '作业二': 'homework2', '作业三': 'homework3', '作业四': 'homework4', '作业五': 'homework5', '实验一': 'experiment1', '实验二': 'experiment2', '考勤1': 'attendance1', '考勤2': 'attendance2', '考勤3': 'attendance3', '考勤4': 'attendance4', '考勤5': 'attendance5', '复习笔记': 'review_note', '系统': 'system_score', '报告': 'report_score'}
+INFO 2026-06-21 21:51:25,216 excel_handlers 22348 44940 所有原始列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1', '考勤2', '考勤3', '考勤4', '考勤5', '复习笔记', '系统', '报告']
+INFO 2026-06-21 21:51:25,217 excel_handlers 22348 9976 所有原始列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1', '考勤2', '考勤3', '考勤4', '考勤5', '复习笔记', '系统', '报告']
+INFO 2026-06-21 21:51:25,217 excel_handlers 22348 44940 开始解析数据，共35行
+INFO 2026-06-21 21:51:25,217 excel_handlers 22348 9976 开始解析数据，共35行
+INFO 2026-06-21 21:51:25,233 excel_handlers 22348 44940 解析记分册Excel成功: 识别到 17 个字段, 35 条有效数据, 0 个错误
+INFO 2026-06-21 21:51:25,244 excel_handlers 22348 9976 解析记分册Excel成功: 识别到 17 个字段, 35 条有效数据, 0 个错误
+INFO 2026-06-21 21:51:25,244 excel_handlers 22348 44940 第一条数据示例: {'student_id': '202008020108', 'student_name': '任中君', 'homework1': 70.0, 'homework2': 75.0, 'homework3': 74.0, 'homework4': 76.0, 'homework5': 78.0, 'experiment1': 60.0, 'experiment2': 60.0, 'attendance1': 90.0, 'attendance2': 100.0, 'attendance3': 100.0, 'attendance4': 90.0, 'attendance5': 100.0, 'review_note': 82.0, 'system_score': 70.0, 'report_score': 70.0}
+INFO 2026-06-21 21:51:25,245 excel_handlers 22348 9976 第一条数据示例: {'student_id': '202008020108', 'student_name': '任中君', 'homework1': 70.0, 'homework2': 75.0, 'homework3': 74.0, 'homework4': 76.0, 'homework5': 78.0, 'experiment1': 60.0, 'experiment2': 60.0, 'attendance1': 90.0, 'attendance2': 100.0, 'attendance3': 100.0, 'attendance4': 90.0, 'attendance5': 100.0, 'review_note': 82.0, 'system_score': 70.0, 'report_score': 70.0}
+INFO 2026-06-21 21:51:25,248 basehttp 22348 44940 "POST /api/scores/gradebooks/preview-graphics-gradebook/ HTTP/1.1" 200 8278
+INFO 2026-06-21 21:51:25,248 basehttp 22348 9976 "POST /api/scores/gradebooks/preview-graphics-gradebook/ HTTP/1.1" 200 8278
+INFO 2026-06-21 21:53:35,321 views 22348 33872 导出记分册 - course_class_id=10, 记分册数量=0
+INFO 2026-06-21 21:53:35,388 basehttp 22348 33872 "GET /api/scores/gradebooks/export-excel/?course_class_id=10 HTTP/1.1" 200 5370
+INFO 2026-06-21 21:54:57,681 basehttp 22348 43940 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 21:54:57,702 basehttp 22348 42656 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:55:00,043 basehttp 22348 10816 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=10&student_id= HTTP/1.1" 200 13747
+INFO 2026-06-21 21:55:00,177 basehttp 22348 22088 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-21 21:55:00,545 basehttp 22348 44068 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:55:27,368 basehttp 22348 44896 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=3&student_id= HTTP/1.1" 200 13760
+INFO 2026-06-21 21:55:27,560 basehttp 22348 44540 "GET /api/analysis/objective-achievement/?course_class_id=3 HTTP/1.1" 200 13205
+INFO 2026-06-21 21:55:27,711 basehttp 22348 34744 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:55:30,143 basehttp 22348 44208 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=1&student_id= HTTP/1.1" 200 13693
+INFO 2026-06-21 21:55:30,342 basehttp 22348 42936 "GET /api/analysis/objective-achievement/?course_class_id=1 HTTP/1.1" 200 13120
+INFO 2026-06-21 21:55:30,497 basehttp 22348 45052 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:55:33,213 basehttp 22348 41496 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=9&student_id= HTTP/1.1" 200 13758
+INFO 2026-06-21 21:55:33,379 basehttp 22348 12924 "GET /api/analysis/objective-achievement/?course_class_id=9 HTTP/1.1" 200 13205
+INFO 2026-06-21 21:55:33,531 basehttp 22348 40264 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:55:35,784 basehttp 22348 21176 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=13&student_id= HTTP/1.1" 200 13891
+INFO 2026-06-21 21:55:35,977 basehttp 22348 41180 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-21 21:55:36,106 basehttp 22348 44464 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:56:16,586 basehttp 22348 5936 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=13&student_id= HTTP/1.1" 200 13891
+INFO 2026-06-21 21:56:16,778 basehttp 22348 33000 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-21 21:56:16,887 basehttp 22348 21768 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:56:18,662 basehttp 22348 40608 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 21:56:33,339 excel_handlers 22348 44712 找到表头行: 第1行, 内容: ['学号', '姓名', '作业一', '作业二', '作业三']
+INFO 2026-06-21 21:56:33,377 excel_handlers 22348 44712 读取Excel成功: 共35行, 列数: 17
+INFO 2026-06-21 21:56:33,379 excel_handlers 22348 44712 列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1']
+INFO 2026-06-21 21:56:33,380 excel_handlers 22348 44712 删除空行后: 共35行
+INFO 2026-06-21 21:56:33,381 excel_handlers 22348 44712 第一行数据: {'学号': '202008020108', '姓名': '任中君', '作业一': 70, '作业二': 75, '作业三': 74, '作业四': 76, '作业五': 78, '实验一': 60, '实验二': 60, '考勤1': 90, '考勤2': 100, '考勤3': 100, '考勤4': 90, '考勤5': 100, '复习笔记': 82, '系统': 70, '报告': 70}
+INFO 2026-06-21 21:56:33,381 excel_handlers 22348 44712 列名识别结果: {'学号': 'student_id', '姓名': 'student_name', '作业一': 'homework1', '作业二': 'homework2', '作业三': 'homework3', '作业四': 'homework4', '作业五': 'homework5', '实验一': 'experiment1', '实验二': 'experiment2', '考勤1': 'attendance1', '考勤2': 'attendance2', '考勤3': 'attendance3', '考勤4': 'attendance4', '考勤5': 'attendance5', '复习笔记': 'review_note', '系统': 'system_score', '报告': 'report_score'}
+INFO 2026-06-21 21:56:33,383 excel_handlers 22348 44712 所有原始列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1', '考勤2', '考勤3', '考勤4', '考勤5', '复习笔记', '系统', '报告']
+INFO 2026-06-21 21:56:33,383 excel_handlers 22348 44712 开始解析数据，共35行
+INFO 2026-06-21 21:56:33,388 excel_handlers 22348 44712 解析记分册Excel成功: 识别到 17 个字段, 35 条有效数据, 0 个错误
+INFO 2026-06-21 21:56:33,388 excel_handlers 22348 44712 第一条数据示例: {'student_id': '202008020108', 'student_name': '任中君', 'homework1': 70.0, 'homework2': 75.0, 'homework3': 74.0, 'homework4': 76.0, 'homework5': 78.0, 'experiment1': 60.0, 'experiment2': 60.0, 'attendance1': 90.0, 'attendance2': 100.0, 'attendance3': 100.0, 'attendance4': 90.0, 'attendance5': 100.0, 'review_note': 82.0, 'system_score': 70.0, 'report_score': 70.0}
+INFO 2026-06-21 21:56:33,393 basehttp 22348 44712 "POST /api/scores/gradebooks/preview-graphics-gradebook/ HTTP/1.1" 200 8278
+INFO 2026-06-21 21:57:11,545 basehttp 22348 44776 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 21:57:11,558 basehttp 22348 24504 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 21:57:14,353 basehttp 22348 21280 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 22:00:24,638 excel_handlers 22348 21144 找到表头行: 第1行, 内容: ['学号', '姓名', '作业一', '作业二', '作业三']
+INFO 2026-06-21 22:00:24,680 excel_handlers 22348 21144 读取Excel成功: 共35行, 列数: 17
+INFO 2026-06-21 22:00:24,680 excel_handlers 22348 21144 列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1']
+INFO 2026-06-21 22:00:24,680 excel_handlers 22348 21144 删除空行后: 共35行
+INFO 2026-06-21 22:00:24,683 excel_handlers 22348 21144 第一行数据: {'学号': '202008020108', '姓名': '任中君', '作业一': 70, '作业二': 75, '作业三': 74, '作业四': 76, '作业五': 78, '实验一': 60, '实验二': 60, '考勤1': 90, '考勤2': 100, '考勤3': 100, '考勤4': 90, '考勤5': 100, '复习笔记': 82, '系统': 70, '报告': 70}
+INFO 2026-06-21 22:00:24,683 excel_handlers 22348 21144 列名识别结果: {'学号': 'student_id', '姓名': 'student_name', '作业一': 'homework1', '作业二': 'homework2', '作业三': 'homework3', '作业四': 'homework4', '作业五': 'homework5', '实验一': 'experiment1', '实验二': 'experiment2', '考勤1': 'attendance1', '考勤2': 'attendance2', '考勤3': 'attendance3', '考勤4': 'attendance4', '考勤5': 'attendance5', '复习笔记': 'review_note', '系统': 'system_score', '报告': 'report_score'}
+INFO 2026-06-21 22:00:24,686 excel_handlers 22348 21144 所有原始列名: ['学号', '姓名', '作业一', '作业二', '作业三', '作业四', '作业五', '实验一', '实验二', '考勤1', '考勤2', '考勤3', '考勤4', '考勤5', '复习笔记', '系统', '报告']
+INFO 2026-06-21 22:00:24,686 excel_handlers 22348 21144 开始解析数据，共35行
+INFO 2026-06-21 22:00:24,696 excel_handlers 22348 21144 解析记分册Excel成功: 识别到 17 个字段, 35 条有效数据, 0 个错误
+INFO 2026-06-21 22:00:24,697 excel_handlers 22348 21144 第一条数据示例: {'student_id': '202008020108', 'student_name': '任中君', 'homework1': 70.0, 'homework2': 75.0, 'homework3': 74.0, 'homework4': 76.0, 'homework5': 78.0, 'experiment1': 60.0, 'experiment2': 60.0, 'attendance1': 90.0, 'attendance2': 100.0, 'attendance3': 100.0, 'attendance4': 90.0, 'attendance5': 100.0, 'review_note': 82.0, 'system_score': 70.0, 'report_score': 70.0}
+INFO 2026-06-21 22:00:24,699 basehttp 22348 21144 "POST /api/scores/gradebooks/preview-graphics-gradebook/ HTTP/1.1" 200 8278
+INFO 2026-06-21 22:03:08,601 basehttp 22348 21528 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 22:03:08,620 basehttp 22348 26392 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:03:10,176 basehttp 22348 26852 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=10&student_id= HTTP/1.1" 200 13747
+INFO 2026-06-21 22:03:10,336 basehttp 22348 40876 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-21 22:03:10,692 basehttp 22348 44692 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:03:12,762 basehttp 22348 14568 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=3&student_id= HTTP/1.1" 200 13760
+INFO 2026-06-21 22:03:12,935 basehttp 22348 37272 "GET /api/analysis/objective-achievement/?course_class_id=3 HTTP/1.1" 200 13205
+INFO 2026-06-21 22:03:13,069 basehttp 22348 44524 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:03:15,305 basehttp 22348 42956 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=13&student_id= HTTP/1.1" 200 13891
+INFO 2026-06-21 22:03:15,510 basehttp 22348 21548 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-21 22:03:15,654 basehttp 22348 42708 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:05:06,946 basehttp 22348 26304 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=13&student_id=202008020108 HTTP/1.1" 200 745
+INFO 2026-06-21 22:05:07,121 basehttp 22348 40084 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-21 22:05:28,477 basehttp 22348 22040 "GET /api/courses/classes/ HTTP/1.1" 200 3649
+INFO 2026-06-21 22:05:28,500 basehttp 22348 13576 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:05:31,159 basehttp 22348 44552 "GET /api/scores/scores/?page=1&page_size=20&course_class_id=13&student_id= HTTP/1.1" 200 13891
+INFO 2026-06-21 22:05:31,317 basehttp 22348 34024 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-21 22:05:31,685 basehttp 22348 44348 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:08:02,173 basehttp 22348 44828 "GET /api/scores/scores/export-achievement/?course_class_id=13 HTTP/1.1" 200 11681
+INFO 2026-06-21 22:08:41,222 basehttp 22348 39044 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 22:08:43,532 basehttp 22348 33448 "GET /api/courses/classes/13/ HTTP/1.1" 200 476
+INFO 2026-06-21 22:08:43,612 basehttp 22348 41580 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=1 HTTP/1.1" 200 13881
+INFO 2026-06-21 22:08:43,669 basehttp 22348 44664 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=2 HTTP/1.1" 200 10361
+INFO 2026-06-21 22:10:18,461 basehttp 22348 41952 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-21 22:10:39,135 basehttp 22348 40588 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-21 22:10:41,647 basehttp 22348 38520 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-22 14:48:17,150 basehttp 22348 43440 "GET /api/analysis/achievement-analysis/?course_class_id=10 HTTP/1.1" 200 1686
+INFO 2026-06-22 14:48:19,531 basehttp 22348 49436 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-22 14:48:52,822 basehttp 22348 45780 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-22 14:48:53,572 basehttp 22348 38476 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 14:48:55,918 basehttp 22348 35312 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-22 14:50:21,981 basehttp 22348 15728 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-22 14:50:23,674 basehttp 22348 8064 "GET /api/courses/classes/13/ HTTP/1.1" 200 476
+INFO 2026-06-22 14:50:23,774 basehttp 22348 6432 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=1 HTTP/1.1" 200 13881
+INFO 2026-06-22 14:50:23,853 basehttp 22348 16912 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=2 HTTP/1.1" 200 10361
+INFO 2026-06-22 14:50:34,869 basehttp 22348 35312 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 14:50:37,831 basehttp 22348 22956 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-22 14:55:50,518 basehttp 22348 21176 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 14:56:13,601 basehttp 22348 46704 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 14:56:15,985 basehttp 22348 15660 "GET /api/analysis/achievement-analysis/?course_class_id=13 HTTP/1.1" 200 1735
+INFO 2026-06-22 15:01:55,955 basehttp 22348 17972 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-22 15:01:58,565 basehttp 22348 49448 "GET /api/courses/classes/13/ HTTP/1.1" 200 476
+INFO 2026-06-22 15:01:58,649 basehttp 22348 33884 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=1 HTTP/1.1" 200 13881
+INFO 2026-06-22 15:01:58,711 basehttp 22348 38520 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=2 HTTP/1.1" 200 10361
+INFO 2026-06-22 15:24:03,141 autoreload 22348 44944 D:\score_analysis\backend\apps\scores\models.py changed, reloading.
+INFO 2026-06-22 15:24:23,820 autoreload 37444 2076 Watching for file changes with StatReloader
+INFO 2026-06-22 15:24:37,566 autoreload 37444 2076 D:\score_analysis\backend\apps\courses\views.py changed, reloading.
+INFO 2026-06-22 15:24:39,614 autoreload 44440 17224 Watching for file changes with StatReloader
+INFO 2026-06-22 15:26:26,758 autoreload 44440 17224 D:\score_analysis\backend\apps\scores\migrations\0006_gradebook_conclusion_gradebook_report_score_and_more.py changed, reloading.
+INFO 2026-06-22 15:26:29,068 autoreload 23664 50108 Watching for file changes with StatReloader
+INFO 2026-06-22 20:06:34,709 basehttp 23664 41904 "GET /api/scores/gradebooks/graphics-classes/ HTTP/1.1" 200 1530
+INFO 2026-06-22 20:06:36,036 basehttp 23664 49416 "GET /api/courses/classes/3/ HTTP/1.1" 200 425
+INFO 2026-06-22 20:06:36,144 basehttp 23664 820 "GET /api/scores/scores/?course_class_id=3&page_size=1000&page=1 HTTP/1.1" 200 13750
+INFO 2026-06-22 20:06:36,219 basehttp 23664 47708 "GET /api/scores/scores/?course_class_id=3&page_size=1000&page=2 HTTP/1.1" 200 6919
+INFO 2026-06-22 20:07:04,513 basehttp 23664 14108 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-22 20:07:04,598 basehttp 23664 4148 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 20:07:06,931 basehttp 23664 21396 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=1 HTTP/1.1" 200 13737
+INFO 2026-06-22 20:07:07,025 basehttp 23664 43196 "GET /api/scores/scores/?course_class_id=10&page_size=1000&page=2 HTTP/1.1" 200 10326
+INFO 2026-06-22 20:07:07,142 basehttp 23664 45332 "GET /api/analysis/objective-achievement/?course_class_id=10 HTTP/1.1" 200 15209
+INFO 2026-06-22 20:10:08,080 basehttp 23664 47908 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2588
+INFO 2026-06-22 20:11:56,353 basehttp 23664 38768 "GET /api/analysis/dashboard/ HTTP/1.1" 200 267
+INFO 2026-06-22 20:11:56,438 basehttp 23664 36516 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 20:11:58,998 basehttp 23664 49120 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=1 HTTP/1.1" 200 13881
+INFO 2026-06-22 20:11:59,063 basehttp 23664 47996 "GET /api/scores/scores/?course_class_id=13&page_size=1000&page=2 HTTP/1.1" 200 10361
+INFO 2026-06-22 20:11:59,182 basehttp 23664 50944 "GET /api/analysis/objective-achievement/?course_class_id=13 HTTP/1.1" 200 15229
+INFO 2026-06-22 20:41:51,554 basehttp 23664 47168 "GET /api/courses/courses/?page=1&page_size=20 HTTP/1.1" 200 2588
+INFO 2026-06-22 20:44:16,011 basehttp 23664 21216 "GET /api/scores/scores/classes-with-scores/ HTTP/1.1" 200 1062
+INFO 2026-06-22 20:44:16,126 basehttp 23664 25708 "GET /api/courses/classes/ HTTP/1.1" 200 3649

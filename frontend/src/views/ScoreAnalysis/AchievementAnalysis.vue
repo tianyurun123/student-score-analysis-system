@@ -176,11 +176,20 @@ const scoreDistributionTableData = computed(() => {
     优秀: '0.00'
   }
   
+  let total = 0
   analysisData.value.distribution.forEach(dist => {
     const label = dist.label
     if (counts[label] !== undefined) {
       counts[label] = dist.count
-      percentages[label] = dist.percentage.toFixed(2)
+      total += dist.count
+    }
+  })
+  
+  analysisData.value.distribution.forEach(dist => {
+    const label = dist.label
+    if (percentages[label] !== undefined) {
+      const percentage = total > 0 ? (dist.count / total * 100) : 0
+      percentages[label] = percentage.toFixed(2)
     }
   })
   
@@ -221,19 +230,8 @@ onMounted(async () => {
 
 const loadAllClasses = async () => {
   try {
-    // 加载普通成绩班级
-    const normalResponse = await getClassesWithScores()
-    const normalClasses = normalResponse.results || normalResponse || []
-    
-    // 加载算法成绩班级
-    const algorithmResponse = await getClassesWithAlgorithmScores()
-    const algorithmClasses = (algorithmResponse.results || algorithmResponse.data || []).map(cls => ({
-      ...cls,
-      is_algorithm: true
-    }))
-    
-    // 合并所有班级
-    allClasses.value = [...normalClasses, ...algorithmClasses]
+    const response = await getClassesWithScores()
+    allClasses.value = response.results || response || []
   } catch (error) {
     ElMessage.error('加载班级列表失败')
     console.error(error)

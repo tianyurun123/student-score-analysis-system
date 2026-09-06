@@ -314,55 +314,16 @@ def generate_quality_analysis_doc(basic_info, analysis_texts, distribution_data,
                 return ''
 
         # 考试质量分析部分
-        if is_graphics_course:
-            # 图形学课程：单一文本框
-            qa_heading = doc.add_heading('考试质量分析', level=2)
-            graphics_raw = analysis_texts.get('graphics_analysis', '')
-            logger.info(f"graphics_analysis原始值类型: {type(graphics_raw)}, 值: {str(graphics_raw)[:100] if graphics_raw else 'None'}")
-            graphics_text = ensure_string(graphics_raw)
-            logger.info(f"graphics_analysis转换后值: {graphics_text[:100] if graphics_text else 'Empty'}")
-            if not graphics_text or graphics_text.strip() == '':
-                graphics_text = '（待填写）'
-            qa_para = doc.add_paragraph(graphics_text)
-            for run in qa_para.runs:
-                run.font.size = Pt(12)
-        else:
-            # 算法课程：分三部分
-            # 试题质量分析
-            qa_heading = doc.add_heading('试题质量分析', level=2)
-            qa_raw = analysis_texts.get('question_quality', '')
-            logger.info(f"question_quality原始值类型: {type(qa_raw)}, 值: {str(qa_raw)[:100] if qa_raw else 'None'}")
-            qa_text = ensure_string(qa_raw)
-            logger.info(f"question_quality转换后值: {qa_text[:100] if qa_text else 'Empty'}")
-            if not qa_text or qa_text.strip() == '':
-                qa_text = '（待填写）'
-            qa_para = doc.add_paragraph(qa_text)
-            for run in qa_para.runs:
-                run.font.size = Pt(12)
-
-            # 考试(卷面)成绩分析
-            exam_heading = doc.add_heading('考试(卷面)成绩分析', level=2)
-            exam_raw = analysis_texts.get('exam_score_analysis', '')
-            logger.info(f"exam_score_analysis原始值类型: {type(exam_raw)}, 值: {str(exam_raw)[:100] if exam_raw else 'None'}")
-            exam_text = ensure_string(exam_raw)
-            logger.info(f"exam_score_analysis转换后值: {exam_text[:100] if exam_text else 'Empty'}")
-            if not exam_text or exam_text.strip() == '':
-                exam_text = '（待填写）'
-            exam_para = doc.add_paragraph(exam_text)
-            for run in exam_para.runs:
-                run.font.size = Pt(12)
-
-            # 教学效果分析及改进措施
-            teaching_heading = doc.add_heading('教学效果分析及改进措施', level=2)
-            teaching_raw = analysis_texts.get('teaching_effectiveness', '')
-            logger.info(f"teaching_effectiveness原始值类型: {type(teaching_raw)}, 值: {str(teaching_raw)[:100] if teaching_raw else 'None'}")
-            teaching_text = ensure_string(teaching_raw)
-            logger.info(f"teaching_effectiveness转换后值: {teaching_text[:100] if teaching_text else 'Empty'}")
-            if not teaching_text or teaching_text.strip() == '':
-                teaching_text = '（待填写）'
-            teaching_para = doc.add_paragraph(teaching_text)
-            for run in teaching_para.runs:
-                run.font.size = Pt(12)
+        qa_heading = doc.add_heading('考试质量分析', level=2)
+        graphics_raw = analysis_texts.get('graphics_analysis', '')
+        logger.info(f"graphics_analysis原始值类型: {type(graphics_raw)}, 值: {str(graphics_raw)[:100] if graphics_raw else 'None'}")
+        graphics_text = ensure_string(graphics_raw)
+        logger.info(f"graphics_analysis转换后值: {graphics_text[:100] if graphics_text else 'Empty'}")
+        if not graphics_text or graphics_text.strip() == '':
+            graphics_text = '（待填写）'
+        qa_para = doc.add_paragraph(graphics_text)
+        for run in qa_para.runs:
+            run.font.size = Pt(12)
         
         # 评价工作小组意见
         group_heading = doc.add_heading('评价工作小组意见', level=2)
